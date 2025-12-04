@@ -143,7 +143,7 @@ function TiendaPublica() {
               <img 
                 src="/logo.png" 
                 alt="Logo" 
-                className="w-8 h-8 rounded object-cover"
+                className="w-10 h-8 rounded object-cover"
               />
               <h1 className="text-2xl font-bold">
                 <span className="text-red-600">MAX</span>
