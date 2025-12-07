@@ -28,7 +28,7 @@ const Snowflake = ({ delay, duration, left }) => (
 const marcasPorCategoria = {
   'Niños': ['Punto original', 'Vady', 'Air running', 'Adidas', 'Ivano', 'Nacionales', 'V dariens'],
   'Hombre': ['Adidas', 'Nike', 'Puma', 'Brixton', 'Walon', 'Punto original', 'I cax', 'Ivano', 'Anda', 'Réplicas A1', 'New atletic'],
-  'Mujer': ['Punto original', 'Punto v dariens', 'Ultralong', 'Estilo coreano']
+  'Mujer': ['Punto original', 'Punto v dariens', 'Ultralong', 'Estilo coreano', 'Adidas', 'Puma', 'Reebok', 'Nike']
 };
 
 const tallas = Array.from({ length: 22 }, (_, i) => (i + 22).toString());
@@ -188,7 +188,7 @@ function TiendaPublica() {
           <div className="mb-4 text-xl md:text-2xl font-bold text-white">
             🎅 te desea una feliz navidad 🎄
           </div>
-          <p className="text-lg md:text-xl text-gray-200 mb-6">Tu destino para calzado y artículos deportivos</p>
+          <p className="text-lg md:text-xl text-gray-200 mb-6">Tu mejor opción en zapatillas y artículos deportivos aquí en Huancavelica</p>
           <div className="text-lg md:text-xl text-yellow-300 font-semibold animate-pulse">
             ✨ Ofertas especiales de fin de año ✨
           </div>
