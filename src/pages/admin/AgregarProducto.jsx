@@ -6,7 +6,7 @@ import { ArrowLeft, Upload, Save, Package } from 'lucide-react';
 const marcasPorCategoria = {
   'Niños': ['Punto original', 'Vady', 'Air running', 'Adidas', 'Ivano', 'Nacionales', 'V dariens'],
   'Hombre': ['Adidas', 'Nike', 'Puma', 'Brixton', 'Walon', 'Punto original', 'I cax', 'Ivano', 'Anda', 'Réplicas A1', 'New atletic'],
-  'Mujer': ['Punto original', 'Punto v dariens', 'Ultralong', 'Estilo coreano']
+  'Mujer': ['Punto original', 'Punto v dariens', 'Ultralong', 'Estilo coreano', 'Adidas', 'Puma', 'Reebok', 'Nike']
 };
 
 const subcategoriasDeportivas = [
@@ -300,4 +300,5 @@ export default function AgregarProducto() {
       </div>
     </div>
   );
+
 }
