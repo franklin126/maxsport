@@ -170,32 +170,40 @@ function TiendaPublica() {
         )}
       </nav>
 
-      {/* Hero Section Navideño */}
-      <div className="relative h-[80vh] bg-cover bg-center" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1556906781-9a412961c28c?w=1920)'}}>
-        <div className="absolute inset-0 bg-gradient-to-b from-red-900/70 via-black/70 to-black"></div>
-        
+      {/* portada */}
+      <div className="relative h-[70vh] md:h-[75vh] lg:h-[80vh]">
+        <div 
+          className="absolute inset-0 bg-cover bg-center brightness-110"
+          style={{ backgroundImage: "url('/max.png')" }}
+        ></div>
+        <div className="absolute inset-0 bg-black/20"></div>
         {snowflakes.map(flake => (
           <Snowflake key={flake.id} delay={flake.delay} duration={flake.duration} left={flake.left} />
         ))}
-
         <div className="absolute top-8 left-8 text-6xl animate-bounce" style={{animationDelay: '0s'}}>🎄</div>
         <div className="absolute top-8 right-8 text-6xl animate-bounce" style={{animationDelay: '0.5s'}}>🎄</div>
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
-          <h1 className="text-5xl md:text-7xl font-black mb-4">
+
+          <h1 className="text-4xl md:text-6xl font-black mb-3">
             <span className="text-red-600">MAX</span>
             <span className="text-white"> SPORT</span>
           </h1>
-          <div className="mb-4 text-xl md:text-2xl font-bold text-white">
+
+          <div className="mb-4 text-lg md:text-xl font-bold text-white">
             🎅 te desea una feliz navidad 🎄
           </div>
-          <p className="text-lg md:text-xl text-gray-200 mb-6">Tu mejor opción en zapatillas y artículos deportivos aquí en Huancavelica</p>
+
+          <p className="text-lg md:text-xl text-gray-200 mb-6">
+            Tu mejor opción en zapatillas y artículos deportivos aquí en Huancavelica
+          </p>
+
           <div className="text-lg md:text-xl text-yellow-300 font-semibold animate-pulse">
             ✨ Ofertas especiales de fin de año ✨
           </div>
         </div>
       </div>
 
-      {/* Botones de Categorías */}
+      {/* Botones de categoria */}
       <div className="bg-gradient-to-r from-red-900 to-green-900 border-y border-red-600 sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex overflow-x-auto gap-2 py-4 scrollbar-hide">
