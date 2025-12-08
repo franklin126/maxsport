@@ -176,7 +176,7 @@ function TiendaPublica() {
           className="absolute inset-0 bg-cover bg-center brightness-110"
           style={{ backgroundImage: "url('/max.png')" }}
         ></div>
-        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="absolute inset-0 bg-black/50"></div>
         {snowflakes.map(flake => (
           <Snowflake key={flake.id} delay={flake.delay} duration={flake.duration} left={flake.left} />
         ))}
