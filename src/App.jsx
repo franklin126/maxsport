@@ -171,15 +171,18 @@ function TiendaPublica() {
       </nav>
 
       {/* portada */}
-      <div className="relative h-[55vh] md:h-[60vh] lg:h-[65vh] overflow-hidden">
-
-        <div 
-          className="absolute inset-0 bg-cover bg-center brightness-110"
-          style={{ backgroundImage: "url('/max.png')", backgroundSize: "cover" }}
+      <div className="relative h-[35vh] md:h-[40vh] lg:h-[45vh]">
+        
+        {/* Imagen de fondo */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/max.png')" }}
         ></div>
 
-        <div className="absolute inset-0 bg-black/75"></div>
+        {/* Oscurecimiento suave (opcional, puedes ajustar) */}
+        <div className="absolute inset-0 bg-black/10"></div>
 
+        {/* Nieve */}
         {snowflakes.map(flake => (
           <Snowflake
             key={flake.id}
@@ -189,35 +192,27 @@ function TiendaPublica() {
           />
         ))}
 
-        <div
-          className="absolute top-8 left-4 text-6xl animate-bounce"
-          style={{ animationDelay: "0s" }}
-        >
-          🎄
-        </div>
-        <div
-          className="absolute top-8 right-4 text-6xl animate-bounce"
-          style={{ animationDelay: "0.5s" }}
-        >
-          🎄
-        </div>
+        {/* Árboles */}
+        <div className="absolute top-4 left-4 text-4xl animate-bounce">🎄</div>
+        <div className="absolute top-4 right-4 text-4xl animate-bounce">🎄</div>
 
+        {/* Texto */}
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
 
-          <h1 className="text-4xl md:text-6xl font-black mb-3">
+          <h1 className="text-3xl md:text-5xl font-black mb-2">
             <span className="text-red-600">MAX</span>
             <span className="text-white"> SPORT</span>
           </h1>
 
-          <div className="mb-3 text-lg md:text-xl font-bold text-white">
+          <div className="mb-2 text-base md:text-lg font-bold text-white">
             🎅 te desea una feliz navidad 🎄
           </div>
 
-          <p className="text-lg md:text-xl text-gray-200 mb-4">
+          <p className="text-sm md:text-base text-gray-200 mb-3">
             Tu mejor opción en zapatillas y artículos deportivos aquí en Huancavelica
           </p>
 
-          <div className="text-lg md:text-xl text-red-500 font-semibold animate-pulse">
+          <div className="text-sm md:text-base text-yellow-300 font-semibold animate-pulse">
             ✨ Ofertas especiales de fin de año ✨
           </div>
 
