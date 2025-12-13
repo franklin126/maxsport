@@ -171,7 +171,7 @@ function TiendaPublica() {
       </nav>
 
       {/* portada */}
-      <div className="relative h-[35vh] md:h-[40vh] lg:h-[45vh]">
+      <div className="relative h-[22vh] md:h-[26vh] lg:h-[30vh]">
         
         {/* Imagen de fondo */}
         <div
