@@ -171,30 +171,17 @@ function TiendaPublica() {
       </nav>
 
       {/* portada */}
-      <div className="relative h-[22vh] md:h-[26vh] lg:h-[30vh]">
+      <div className="relative h-[35vh] md:h-[40vh] lg:h-[45vh]">
         
         {/* Imagen de fondo */}
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: "url('/max.png')" }}
         ></div>
+        <div className="absolute inset-0 bg-black/35"></div>
 
         {/* Oscurecimiento suave (opcional, puedes ajustar) */}
         <div className="absolute inset-0 bg-black/10"></div>
-
-        {/* Nieve */}
-        {snowflakes.map(flake => (
-          <Snowflake
-            key={flake.id}
-            delay={flake.delay}
-            duration={flake.duration}
-            left={flake.left}
-          />
-        ))}
-
-        {/* Árboles */}
-        <div className="absolute top-4 left-4 text-4xl animate-bounce">🎄</div>
-        <div className="absolute top-4 right-4 text-4xl animate-bounce">🎄</div>
 
         {/* Texto */}
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
@@ -204,20 +191,72 @@ function TiendaPublica() {
             <span className="text-white"> SPORT</span>
           </h1>
 
-          <div className="mb-2 text-base md:text-lg font-bold text-white">
-            🎅 te desea una feliz navidad 🎄
-          </div>
-
-          <p className="text-sm md:text-base text-gray-200 mb-3">
-            Tu mejor opción en zapatillas y artículos deportivos aquí en Huancavelica
+          <p className="text-sm md:text-base text-white mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+            Tu mejor opción en zapatillas y artículos deportivos aquí en HUANCAVELICA
           </p>
 
-          <div className="text-sm md:text-base text-yellow-300 font-semibold animate-pulse">
-            ✨ Ofertas especiales de fin de año ✨
+          <div className="text-sm md:text-base text-yellow-400 font-bold animate-pulse drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
+            ✨ Ofertas especiales cada semana ✨
           </div>
-
         </div>
       </div>
+
+
+      {/* CARRUSEL DE MARCAS - Reemplaza el anterior */}
+<div className="w-full overflow-hidden bg-white">
+  <style>{`
+    @keyframes scroll-marcas {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .scroll-infinito {
+      animation: scroll-marcas 9s linear infinite;
+    }
+  `}</style>
+  <div className="flex scroll-infinito">
+    {[
+      { nombre: 'Adidas', logo: '/Adidas.png' },
+      { nombre: 'Nike', logo: '/nike.png' },
+      { nombre: 'Puma', logo: '/puma.png' },
+      { nombre: 'Reebok', logo: '/reebok.png' },
+      { nombre: 'New Atletic', logo: '/newatletic.png' },
+      { nombre: 'Brixton', logo: '/brixton.png' },
+      { nombre: 'Walon', logo: '/walon.png' },
+      { nombre: 'Vady', logo: '/vady.png' },
+      { nombre: 'Ivano', logo: '/ivano.png' },
+      { nombre: 'Ultralong', logo: '/ultralong.png' },
+      { nombre: 'Anda', logo: '/anda.png' },
+      // Duplicado para loop infinito
+      { nombre: 'Adidas', logo: '/Adidas.png' },
+      { nombre: 'Nike', logo: '/nike.png' },
+      { nombre: 'Puma', logo: '/puma.png' },
+      { nombre: 'Reebok', logo: '/reebok.png' },
+      { nombre: 'New Atletic', logo: '/newatletic.png' },
+      { nombre: 'Brixton', logo: '/brixton.png' },
+      { nombre: 'Walon', logo: '/walon.png' },
+      { nombre: 'Vady', logo: '/vady.png' },
+      { nombre: 'Ivano', logo: '/ivano.png' },
+      { nombre: 'Ultralong', logo: '/ultralong.png' },
+      { nombre: 'Anda', logo: '/anda.png' }
+    ].map((marca, index) => (
+      <div
+        key={index}
+        className="flex-shrink-0 bg-white flex items-center justify-center"
+        style={{ width: '100px', height: '56px' }}
+      >
+        <img 
+          src={marca.logo} 
+          alt={marca.nombre}
+          className="w-full h-full object-contain p-2"
+          onError={(e) => {
+            e.target.style.display = 'none';
+            e.target.parentElement.innerHTML = `<span class="text-gray-800 font-bold text-xs">${marca.nombre}</span>`;
+          }}
+        />
+      </div>
+    ))}
+  </div>
+</div>
 
       {/* Botones de categoria */}
       <div className="bg-gradient-to-r from-red-900 to-green-900 border-y border-red-600 sticky top-16 z-40">
