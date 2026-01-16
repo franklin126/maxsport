@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
-import { ArrowLeft, Upload, Save, Package } from 'lucide-react';
+import { ArrowLeft, Upload, Save, Package, X } from 'lucide-react';
 
 const marcasPorCategoria = {
   'Niños': ['Punto original', 'Vady', 'Air running', 'Adidas', 'Ivano', 'Nacionales', 'V dariens'],
@@ -32,14 +32,36 @@ export default function AgregarProducto() {
     subcategoria: '',
     marca: '',
     tallas: [],
-    imagen: null
+    precio: '',
+    precio_oferta: '',
+    imagen1: null,
+    imagen2: null,
+    imagen3: null
   });
 
-  const handleImagenChange = (e) => {
+  const [previews, setPreviews] = useState({
+    preview1: null,
+    preview2: null,
+    preview3: null
+  });
+
+  const handleImagenChange = (e, numeroImagen) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData({ ...formData, imagen: file });
+      setFormData({ ...formData, [`imagen${numeroImagen}`]: file });
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviews({ ...previews, [`preview${numeroImagen}`]: reader.result });
+      };
+      reader.readAsDataURL(file);
     }
+  };
+
+  const eliminarImagen = (numeroImagen) => {
+    setFormData({ ...formData, [`imagen${numeroImagen}`]: null });
+    setPreviews({ ...previews, [`preview${numeroImagen}`]: null });
+    document.getElementById(`imagen-input-${numeroImagen}`).value = '';
   };
 
   const handleTallasChange = (talla) => {
@@ -61,29 +83,40 @@ export default function AgregarProducto() {
     setMensaje({ tipo: '', texto: '' });
 
     try {
-      let imagenUrl = null;
+      if (!formData.imagen1 || !formData.imagen2 || !formData.imagen3) {
+        throw new Error('Debes subir las 3 imágenes del producto');
+      }
 
-      // Subir imagen si existe
-      if (formData.imagen) {
-        const fileExt = formData.imagen.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${fileName}`;
+      if (!formData.precio || Number(formData.precio) <= 0) {
+        throw new Error('Debes ingresar un precio válido');
+      }
+
+      if (formData.precio_oferta && Number(formData.precio_oferta) >= Number(formData.precio)) {
+        throw new Error('El precio de oferta debe ser menor al precio normal');
+      }
+
+      const imagenesUrls = [];
+
+      for (let i = 1; i <= 3; i++) {
+        const imagen = formData[`imagen${i}`];
+        const fileExt = imagen.name.split('.').pop();
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(7);
+        const fileName = `${timestamp}_${random}_imagen${i}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('productos')
-          .upload(filePath, formData.imagen);
+          .upload(fileName, imagen);
 
         if (uploadError) throw uploadError;
 
-        // Obtener URL pública
         const { data } = supabase.storage
           .from('productos')
-          .getPublicUrl(filePath);
+          .getPublicUrl(fileName);
 
-        imagenUrl = data.publicUrl;
+        imagenesUrls.push(data.publicUrl);
       }
 
-      // Insertar producto
       const { error } = await supabase
         .from('productos')
         .insert([
@@ -93,7 +126,10 @@ export default function AgregarProducto() {
             subcategoria: formData.subcategoria || null,
             marca: formData.marca || null,
             tallas: (formData.categoria !== 'Artículos Deportivos' && formData.categoria !== 'Ofertas') ? formData.tallas : null,
-            imagen_url: imagenUrl
+            precio: Number(formData.precio),
+            precio_oferta: formData.precio_oferta ? Number(formData.precio_oferta) : null,
+            imagenes: imagenesUrls,
+            imagen_url: imagenesUrls[0]
           }
         ]);
 
@@ -101,20 +137,25 @@ export default function AgregarProducto() {
 
       setMensaje({ tipo: 'success', texto: '✅ Producto agregado correctamente' });
       
-      // Limpiar formulario
       setFormData({
         nombre: '',
         categoria: 'Hombre',
         subcategoria: '',
         marca: '',
         tallas: [],
-        imagen: null
+        precio: '',
+        precio_oferta: '',
+        imagen1: null,
+        imagen2: null,
+        imagen3: null
       });
 
-      // Resetear input de archivo
-      document.getElementById('imagen-input').value = '';
+      setPreviews({
+        preview1: null,
+        preview2: null,
+        preview3: null
+      });
 
-      // Redirigir después de 2 segundos
       setTimeout(() => navigate('/admin/productos'), 2000);
 
     } catch (error) {
@@ -126,10 +167,10 @@ export default function AgregarProducto() {
 
   const mostrarMarca = formData.categoria !== 'Artículos Deportivos' && formData.categoria !== 'Ofertas';
   const mostrarTallas = formData.categoria !== 'Artículos Deportivos' && formData.categoria !== 'Ofertas';
+  const marcaRequerida = formData.categoria !== '2x95' && mostrarMarca;
 
   return (
     <div className="min-h-screen bg-black">
-      {/* Navbar */}
       <nav className="bg-gradient-to-r from-black via-red-900 to-black border-b border-red-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -151,7 +192,6 @@ export default function AgregarProducto() {
         </div>
       </nav>
 
-      {/* Formulario */}
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="mb-8">
           <h2 className="text-4xl font-bold text-white mb-2">Agregar Producto</h2>
@@ -167,7 +207,6 @@ export default function AgregarProducto() {
         )}
 
         <form onSubmit={handleSubmit} className="bg-gray-900 rounded-xl p-8 border border-red-600">
-          {/* Nombre */}
           <div className="mb-6">
             <label className="block text-gray-300 mb-2 font-semibold">Nombre del Producto *</label>
             <input
@@ -180,7 +219,6 @@ export default function AgregarProducto() {
             />
           </div>
 
-          {/* Categoría */}
           <div className="mb-6">
             <label className="block text-gray-300 mb-2 font-semibold">Categoría *</label>
             <select
@@ -188,6 +226,7 @@ export default function AgregarProducto() {
               onChange={(e) => setFormData({ ...formData, categoria: e.target.value, marca: '', subcategoria: '', tallas: [] })}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
             >
+              <option value="2x95">🔥 2 x 95</option>
               <option value="Hombre">Hombre</option>
               <option value="Mujer">Mujer</option>
               <option value="Niños">Niños</option>
@@ -196,7 +235,6 @@ export default function AgregarProducto() {
             </select>
           </div>
 
-          {/* Subcategoría (solo para artículos deportivos) */}
           {formData.categoria === 'Artículos Deportivos' && (
             <div className="mb-6">
               <label className="block text-gray-300 mb-2 font-semibold">Subcategoría *</label>
@@ -214,28 +252,33 @@ export default function AgregarProducto() {
             </div>
           )}
 
-          {/* Marca (solo para zapatillas) */}
           {mostrarMarca && (
             <div className="mb-6">
-              <label className="block text-gray-300 mb-2 font-semibold">Marca *</label>
+              <label className="block text-gray-300 mb-2 font-semibold">
+                Marca {marcaRequerida && '*'}
+              </label>
               <select
                 value={formData.marca}
                 onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
-                required
+                required={marcaRequerida}
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
               >
                 <option value="">Seleccionar marca...</option>
-                {marcasPorCategoria[formData.categoria]?.map(marca => (
+                {(formData.categoria === '2x95' ? marcasPorCategoria['Mujer'] : marcasPorCategoria[formData.categoria])?.map(marca => (
                   <option key={marca} value={marca}>{marca}</option>
                 ))}
               </select>
+              {!marcaRequerida && (
+                <p className="text-xs text-gray-500 mt-1">Opcional para productos 2x95</p>
+              )}
             </div>
           )}
 
-          {/* Tallas (solo para zapatillas) */}
           {mostrarTallas && (
             <div className="mb-6">
-              <label className="block text-gray-300 mb-2 font-semibold">Tallas Disponibles *</label>
+              <label className="block text-gray-300 mb-2 font-semibold">
+                Tallas Disponibles {formData.categoria !== '2x95' && '*'}
+              </label>
               <div className="grid grid-cols-6 md:grid-cols-11 gap-2">
                 {tallasDisponibles.map(talla => (
                   <button
@@ -252,34 +295,84 @@ export default function AgregarProducto() {
                   </button>
                 ))}
               </div>
-              <p className="text-sm text-gray-500 mt-2">Seleccionadas: {formData.tallas.join(', ') || 'Ninguna'}</p>
+              <p className="text-sm text-gray-500 mt-2">
+                Seleccionadas: {formData.tallas.join(', ') || 'Ninguna'}
+                {formData.categoria === '2x95' && ' (Opcional para productos 2x95)'}
+              </p>
             </div>
           )}
 
-          {/* Imagen */}
-          <div className="mb-6">
-            <label className="block text-gray-300 mb-2 font-semibold">Imagen del Producto *</label>
-            <div className="flex items-center gap-4">
-              <label className="flex-1 cursor-pointer">
-                <div className="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center hover:border-red-600 transition">
-                  <Upload className="mx-auto mb-2 text-gray-500" size={32} />
-                  <p className="text-gray-400">
-                    {formData.imagen ? formData.imagen.name : 'Click para subir imagen'}
-                  </p>
-                </div>
-                <input
-                  id="imagen-input"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImagenChange}
-                  required
-                  className="hidden"
-                />
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-300 mb-2 font-semibold">Precio Normal (S/) *</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.precio}
+                onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
+                required
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
+                placeholder="199.90"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-300 mb-2 font-semibold">
+                Precio Oferta (S/) <span className="text-yellow-400 text-sm">(Opcional)</span>
               </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.precio_oferta}
+                onChange={(e) => setFormData({ ...formData, precio_oferta: e.target.value })}
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-600"
+                placeholder="149.90"
+              />
+              <p className="text-xs text-gray-500 mt-1">Si agregas oferta, se mostrará el precio normal tachado</p>
             </div>
           </div>
 
-          {/* Botones */}
+          <div className="mb-6">
+            <label className="block text-gray-300 mb-3 font-semibold">Imágenes del Producto (3 obligatorias) *</label>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[1, 2, 3].map((num) => (
+                <div key={num}>
+                  <label className="block text-gray-400 text-sm mb-2">Imagen {num} {num === 1 ? '(Frente)' : num === 2 ? '(Costado)' : '(Planta)'}</label>
+                  
+                  {previews[`preview${num}`] ? (
+                    <div className="relative">
+                      <img src={previews[`preview${num}`]} alt={`Preview ${num}`} className="w-full h-48 object-cover rounded-lg" />
+                      <button
+                        type="button"
+                        onClick={() => eliminarImagen(num)}
+                        className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer block">
+                      <div className="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center hover:border-red-600 transition">
+                        <Upload className="mx-auto mb-2 text-gray-500" size={32} />
+                        <p className="text-gray-400 text-sm">Click para subir</p>
+                      </div>
+                      <input
+                        id={`imagen-input-${num}`}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImagenChange(e, num)}
+                        required
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="flex gap-4">
             <button
               type="submit"
@@ -300,5 +393,4 @@ export default function AgregarProducto() {
       </div>
     </div>
   );
-
 }
