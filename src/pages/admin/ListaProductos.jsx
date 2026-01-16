@@ -31,17 +31,15 @@ export default function ListaProductos() {
     }
   };
 
-  const eliminarProducto = async (id, imagenUrl) => {
+  const eliminarProducto = async (id, imagenes) => {
     if (!confirm('¿Estás seguro de eliminar este producto?')) return;
 
     try {
-      // Eliminar imagen si existe
-      if (imagenUrl) {
-        const fileName = imagenUrl.split('/').pop();
-        await supabase.storage.from('productos').remove([fileName]);
+      if (imagenes && imagenes.length > 0) {
+        const archivos = imagenes.map(url => url.split('/').pop());
+        await supabase.storage.from('productos').remove(archivos);
       }
 
-      // Eliminar producto
       const { error } = await supabase
         .from('productos')
         .delete()
@@ -62,13 +60,21 @@ export default function ListaProductos() {
     setLoading(true);
 
     try {
+      const updateData = {
+        nombre: productoEditando.nombre,
+        marca: productoEditando.marca,
+        tallas: productoEditando.tallas,
+        precio: Number(productoEditando.precio),
+        precio_oferta: productoEditando.precio_oferta ? Number(productoEditando.precio_oferta) : null
+      };
+
+      if (updateData.precio_oferta && updateData.precio_oferta >= updateData.precio) {
+        throw new Error('El precio de oferta debe ser menor al precio normal');
+      }
+
       const { error } = await supabase
         .from('productos')
-        .update({
-          nombre: productoEditando.nombre,
-          marca: productoEditando.marca,
-          tallas: productoEditando.tallas
-        })
+        .update(updateData)
         .eq('id', productoEditando.id);
 
       if (error) throw error;
@@ -100,7 +106,6 @@ export default function ListaProductos() {
 
   return (
     <div className="min-h-screen bg-black">
-      {/* Navbar */}
       <nav className="bg-gradient-to-r from-black via-red-900 to-black border-b border-red-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -122,7 +127,6 @@ export default function ListaProductos() {
         </div>
       </nav>
 
-      {/* Contenido */}
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -145,7 +149,6 @@ export default function ListaProductos() {
           </div>
         )}
 
-        {/* Filtros */}
         <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 text-gray-400" size={20} />
@@ -163,17 +166,18 @@ export default function ListaProductos() {
             className="px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
           >
             <option value="">Todas las categorías</option>
+            <option value="2x95">🔥 2 x 95</option>
             <option value="Hombre">Hombre</option>
             <option value="Mujer">Mujer</option>
             <option value="Niños">Niños</option>
             <option value="Artículos Deportivos">Artículos Deportivos</option>
+            <option value="Ofertas">Ofertas</option>
           </select>
         </div>
 
-        {/* Modal de Edición */}
         {productoEditando && (
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-900 rounded-xl p-8 max-w-2xl w-full border border-red-600">
+            <div className="bg-gray-900 rounded-xl p-8 max-w-2xl w-full border border-red-600 max-h-[90vh] overflow-y-auto">
               <h3 className="text-2xl font-bold text-white mb-6">Editar Producto</h3>
               <form onSubmit={actualizarProducto}>
                 <div className="mb-4">
@@ -211,6 +215,32 @@ export default function ListaProductos() {
                   </div>
                 )}
 
+                <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-300 mb-2 font-semibold">Precio Normal (S/)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={productoEditando.precio || ''}
+                      onChange={(e) => setProductoEditando({...productoEditando, precio: e.target.value})}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 mb-2 font-semibold">Precio Oferta (S/) <span className="text-yellow-400 text-sm">(Opcional)</span></label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={productoEditando.precio_oferta || ''}
+                      onChange={(e) => setProductoEditando({...productoEditando, precio_oferta: e.target.value})}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-600"
+                    />
+                  </div>
+                </div>
+
                 <div className="flex gap-4">
                   <button
                     type="submit"
@@ -232,17 +262,26 @@ export default function ListaProductos() {
           </div>
         )}
 
-        {/* Grid de productos */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {productosFiltrados.map((producto) => (
             <div key={producto.id} className="bg-gray-900 rounded-xl overflow-hidden border border-gray-700 hover:border-red-600 transition">
-              {producto.imagen_url && (
-                <div className="aspect-square bg-white">
+              {(producto.imagenes?.[0] || producto.imagen_url) && (
+                <div className="aspect-square bg-white relative">
                   <img
-                    src={producto.imagen_url}
+                    src={producto.imagenes?.[0] || producto.imagen_url}
                     alt={producto.nombre}
                     className="w-full h-full object-cover"
                   />
+                  {producto.precio_oferta && producto.precio_oferta < producto.precio && (
+                    <div className="absolute top-2 right-2 bg-yellow-500 text-black font-bold px-3 py-1 rounded-full text-xs">
+                      OFERTA
+                    </div>
+                  )}
+                  {producto.categoria === '2x95' && (
+                    <div className="absolute top-2 left-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold px-3 py-1 rounded-full text-xs">
+                      🔥 2x95
+                    </div>
+                  )}
                 </div>
               )}
               <div className="p-4">
@@ -252,6 +291,18 @@ export default function ListaProductos() {
                   {producto.marca && <p>Marca: {producto.marca}</p>}
                   {producto.subcategoria && <p>Subcategoría: {producto.subcategoria}</p>}
                   {producto.tallas && <p>Tallas: {producto.tallas.join(', ')}</p>}
+                  {producto.precio && (
+                    <div className="mt-2">
+                      {producto.precio_oferta && producto.precio_oferta < producto.precio ? (
+                        <>
+                          <p className="text-gray-500 line-through">S/ {producto.precio.toFixed(2)}</p>
+                          <p className="text-yellow-400 font-bold text-lg">S/ {producto.precio_oferta.toFixed(2)}</p>
+                        </>
+                      ) : (
+                        <p className="text-green-400 font-bold text-lg">S/ {producto.precio.toFixed(2)}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -262,7 +313,7 @@ export default function ListaProductos() {
                     Editar
                   </button>
                   <button
-                    onClick={() => eliminarProducto(producto.id, producto.imagen_url)}
+                    onClick={() => eliminarProducto(producto.id, producto.imagenes)}
                     className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition flex items-center justify-center"
                   >
                     <Trash2 size={16} />
