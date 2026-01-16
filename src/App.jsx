@@ -723,10 +723,6 @@ function TiendaPublica() {
                   <span className="text-yellow-400 font-bold">3.</span>
                   <span>Paga solo S/ 95.00 por ambos productos (sin importar el precio individual)</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-yellow-400 font-bold">4.</span>
-                  <span>¡Ahorra hasta S/ 100 o más!</span>
-                </li>
               </ol>
             </div>
             
