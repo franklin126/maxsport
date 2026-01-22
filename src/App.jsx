@@ -12,8 +12,8 @@ import ProtectedRoute from './components/admin/ProtectedRoute';
 
 const marcasPorCategoria = {
   'Niños': ['Punto original', 'Vady', 'Air running', 'Adidas', 'Ivano', 'Nacionales', 'V dariens'],
-  'Hombre': ['Adidas', 'Nike', 'Puma', 'Brixton', 'Walon', 'Punto original', 'I cax', 'Ivano', 'Anda', 'Réplicas A1', 'New atletic'],
-  'Mujer': ['Punto original', 'Punto v dariens', 'Ultralong', 'Estilo coreano', 'Adidas', 'Puma', 'Reebok', 'Nike']
+  'Hombre': ['Adidas', 'Nike', 'Puma', 'Brixton', 'Walon', 'Punto original', 'I cax', 'Ivano', 'Anda', 'Réplicas A1', 'New atletic', 'N-seven'],
+  'Mujer': ['Punto original', 'Punto v dariens', 'Ultralon', 'Estilo coreano', 'Adidas', 'Puma', 'Reebok', 'Nike', 'Vi-mas', 'Yumi', 'Cacy', 'Boni', 'Quelind', 'N-seven']
 };
 
 const tallas = Array.from({ length: 22 }, (_, i) => (i + 22).toString());
@@ -38,9 +38,24 @@ function ModalProducto({ producto, onClose }) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
   const [modalYape, setModalYape] = useState(false);
-  const imageContainerRef = useState(null);
+  const [imagenesLoaded, setImagenesLoaded] = useState({});
 
   const imagenes = producto.imagenes || [producto.imagen_url];
+
+  // Precargar todas las imágenes al abrir el modal
+  useEffect(() => {
+    const preloadImages = () => {
+      imagenes.forEach((src, index) => {
+        const img = new Image();
+        img.onload = () => {
+          setImagenesLoaded(prev => ({ ...prev, [index]: true }));
+        };
+        img.src = src;
+      });
+    };
+    
+    preloadImages();
+  }, [imagenes]);
 
   const siguienteImagen = () => {
     setImagenActual((prev) => (prev + 1) % imagenes.length);
@@ -143,21 +158,26 @@ function ModalProducto({ producto, onClose }) {
     window.open(`https://wa.me/51929505174?text=${encodeURIComponent(mensaje)}`, '_blank');
   };
 
+  const handleClose = () => {
+    resetZoom();
+    onClose();
+  };
+
   const precioMostrar = producto.precio_oferta || producto.precio;
   const hayOferta = producto.precio_oferta && producto.precio_oferta < producto.precio;
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" onClick={handleClose}>
         <div className="bg-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border-2 border-red-600" onClick={(e) => e.stopPropagation()}>
-          <button onClick={onClose} className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white rounded-full p-2 z-10">
+          <button onClick={handleClose} className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white rounded-full p-2 z-10">
             <X size={24} />
           </button>
 
           <div className="grid md:grid-cols-2 gap-6 p-6">
             <div className="relative">
               <div 
-                className={`aspect-square bg-white rounded-lg overflow-hidden ${zoom ? 'cursor-move' : 'cursor-zoom-in'}`}
+                className={`aspect-square bg-white rounded-lg overflow-hidden relative ${zoom ? 'cursor-move' : 'cursor-zoom-in'}`}
                 onClick={handleImageClick}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
@@ -168,13 +188,19 @@ function ModalProducto({ producto, onClose }) {
                 onTouchEnd={handleTouchEnd}
                 style={{ touchAction: zoom ? 'none' : 'auto' }}
               >
+                {!imagenesLoaded[imagenActual] && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+                  </div>
+                )}
                 <img 
                   src={imagenes[imagenActual]} 
                   alt={producto.nombre}
-                  className="w-full h-full object-cover transition-transform duration-300 select-none"
+                  className="w-full h-full object-contain transition-transform duration-300 select-none"
                   style={{
                     transform: `scale(${zoomLevel}) translate(${panPosition.x / zoomLevel}px, ${panPosition.y / zoomLevel}px)`,
-                    transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`
+                    transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
+                    opacity: imagenesLoaded[imagenActual] ? 1 : 0
                   }}
                   draggable="false"
                 />
@@ -704,13 +730,13 @@ function TiendaPublica() {
       {/* Sección 2x95 */}
       {categoriaActual === '2x95' && (
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="bg-gradient-to-r from-yellow-900 to-orange-900 rounded-xl p-6 mb-6 border-2 border-yellow-500">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+          <div className="bg-gradient-to-r from-yellow-900 to-orange-900 rounded-md p-2 mb-3 border border-yellow-500">
+            <h2 className="text-lg md:text-2xl font-bold text-center mb-2 leading-tight">
               <span className="text-yellow-400">🔥 OFERTA ESPECIAL 2 x S/ 95 🔥</span>
             </h2>
-            <div className="bg-black bg-opacity-30 rounded-lg p-4 mb-4">
-              <h3 className="font-bold text-yellow-300 mb-3 text-lg">📋 ¿Cómo funciona?</h3>
-              <ol className="text-gray-200 space-y-2">
+            <div className="bg-black/40 rounded-sm p-2 mb-2">
+              <h3 className="font-bold text-yellow-300 mb-1 text-sm">📋 ¿Cómo funciona?</h3>
+              <ol className="text-gray-200 space-y-0 text-xs md:text-sm leading-snug">
                 <li className="flex items-start gap-2">
                   <span className="text-yellow-400 font-bold">1.</span>
                   <span>Selecciona 2 productos de esta sección</span>
