@@ -431,19 +431,19 @@ function ModalYape({ producto, precio, onClose }) {
 
         <div className="bg-purple-900 bg-opacity-30 rounded-lg p-3 mb-4 border border-purple-600">
           <p className="text-purple-300 text-sm">Yapear a nombre de:</p>
-          <p className="text-white font-bold text-lg">MAX SPORT</p>
-          <p className="text-gray-400 text-xs mt-1">Confirma que el nombre coincida antes de pagar</p>
+          <p className="text-white font-bold text-lg">Maximo Pari Lizana</p>
+          <p className="text-white font-bold text-lg">Numero: 929505174</p>
         </div>
 
         <div className="bg-white rounded-lg p-4 mb-4 flex justify-center">
-          <img src="/yape-qr.png" alt="Código QR Yape" className="w-48 h-48 object-contain" />
+          <img src="/yape-qr.png" alt="Código QR Yape" className="w-53 h-53 object-contain" />
         </div>
 
         <div className="bg-blue-900 bg-opacity-30 rounded-lg p-4 mb-4 border border-blue-600">
           <h4 className="font-bold text-blue-300 mb-2">📋 Instrucciones:</h4>
           <ol className="text-gray-300 text-sm space-y-2">
             <li>1. Escanea el código QR con tu app Yape</li>
-            <li>2. Verifica que el nombre sea "MAX SPORT"</li>
+            <li>2. Verifica que el nombre sea "Maximo Pari Lizana"</li>
             <li>3. Realiza el pago de S/ {precio.toFixed(2)}</li>
             <li>4. Toma captura de pantalla del comprobante</li>
             <li>5. Presiona "¿Ya pagaste?" y envía la captura</li>
