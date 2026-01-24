@@ -5,8 +5,8 @@ import { ArrowLeft, Upload, Save, Package, X } from 'lucide-react';
 
 const marcasPorCategoria = {
   'Niños': ['Punto original', 'Vady', 'Air running', 'Adidas', 'Ivano', 'Nacionales', 'V dariens'],
-  'Hombre': ['Adidas', 'Nike', 'Puma', 'Brixton', 'Walon', 'Punto original', 'I cax', 'Ivano', 'Anda', 'Réplicas A1', 'New atletic'],
-  'Mujer': ['Punto original', 'Punto v dariens', 'Ultralong', 'Estilo coreano', 'Adidas', 'Puma', 'Reebok', 'Nike']
+  'Hombre': ['Adidas', 'Nike', 'Puma', 'Brixton', 'Walon', 'Punto original', 'I cax', 'Ivano', 'Anda', 'Réplicas A1', 'New atletic', 'N-seven'],
+  'Mujer': ['Punto original', 'Punto v dariens', 'Ultralon', 'Estilo coreano', 'Adidas', 'Puma', 'Reebok', 'Nike', 'Vi-mas', 'Yumi', 'Cacy', 'Boni', 'Quelind', 'N-seven']
 };
 
 const subcategoriasDeportivas = [
@@ -25,6 +25,13 @@ export default function AgregarProducto() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
+
+  // States para imágenes temporales
+  const [imagenesTemp, setImagenesTemp] = useState({
+    temp1: null,
+    temp2: null,
+    temp3: null
+  });
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -45,42 +52,114 @@ export default function AgregarProducto() {
     preview3: null
   });
 
-  const handleImagenChange = (e, numeroImagen) => {
+  // 🆕 MEJORADO: Función para subir imagen a carpeta TEMP con callbacks seguros
+  const handleImagenChange = async (e, numeroImagen) => {
     const file = e.target.files[0];
-    if (file) {
-      setFormData({ ...formData, [`imagen${numeroImagen}`]: file });
-      
+    if (!file) return;
+
+    try {
+      // Generar nombre único con UUID
+      const ext = file.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${ext}`;
+
+      // Subir a carpeta TEMP
+      const { error } = await supabase.storage
+        .from('productos')
+        .upload(`temp/${fileName}`, file);
+
+      if (error) {
+        alert('Error al subir imagen');
+        console.error(error);
+        return;
+      }
+
+      // ✅ MEJORADO: Usar callback para evitar race conditions
+      setImagenesTemp(prev => ({
+        ...prev,
+        [`temp${numeroImagen}`]: `temp/${fileName}`
+      }));
+
+      setFormData(prev => ({
+        ...prev,
+        [`imagen${numeroImagen}`]: file
+      }));
+
+      // Crear preview
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreviews({ ...previews, [`preview${numeroImagen}`]: reader.result });
+        setPreviews(prev => ({
+          ...prev,
+          [`preview${numeroImagen}`]: reader.result
+        }));
       };
       reader.readAsDataURL(file);
+
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al procesar imagen');
     }
   };
 
-  const eliminarImagen = (numeroImagen) => {
-    setFormData({ ...formData, [`imagen${numeroImagen}`]: null });
-    setPreviews({ ...previews, [`preview${numeroImagen}`]: null });
-    document.getElementById(`imagen-input-${numeroImagen}`).value = '';
+  // 🆕 MEJORADO: Eliminar imagen de TEMP con callbacks seguros
+  const eliminarImagen = async (numeroImagen) => {
+    const rutaTemp = imagenesTemp[`temp${numeroImagen}`];
+
+    // Si hay imagen temporal, borrarla de Supabase
+    if (rutaTemp) {
+      try {
+        await supabase.storage
+          .from('productos')
+          .remove([rutaTemp]);
+      } catch (error) {
+        console.error('Error al eliminar imagen temporal:', error);
+      }
+    }
+
+    // ✅ MEJORADO: Limpiar estados con callbacks
+    setFormData(prev => ({
+      ...prev,
+      [`imagen${numeroImagen}`]: null
+    }));
+
+    setPreviews(prev => ({
+      ...prev,
+      [`preview${numeroImagen}`]: null
+    }));
+
+    setImagenesTemp(prev => ({
+      ...prev,
+      [`temp${numeroImagen}`]: null
+    }));
+    
+    const input = document.getElementById(`imagen-input-${numeroImagen}`);
+    if (input) input.value = '';
   };
 
   const handleTallasChange = (talla) => {
-    const tallas = [...formData.tallas];
-    const index = tallas.indexOf(talla);
-    
-    if (index > -1) {
-      tallas.splice(index, 1);
-    } else {
-      tallas.push(talla);
-    }
-    
-    setFormData({ ...formData, tallas: tallas.sort((a, b) => Number(a) - Number(b)) });
+    setFormData(prev => {
+      const tallas = [...prev.tallas];
+      const index = tallas.indexOf(talla);
+      
+      if (index > -1) {
+        tallas.splice(index, 1);
+      } else {
+        tallas.push(talla);
+      }
+      
+      return {
+        ...prev,
+        tallas: tallas.sort((a, b) => Number(a) - Number(b))
+      };
+    });
   };
 
+  // 🆕 MEJORADO: Mueve imágenes de TEMP a PUBLICADOS y guarda solo RUTAS
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMensaje({ tipo: '', texto: '' });
+
+    const imagenesMovidas = []; // Para rollback si falla
 
     try {
       if (!formData.imagen1 || !formData.imagen2 || !formData.imagen3) {
@@ -95,28 +174,35 @@ export default function AgregarProducto() {
         throw new Error('El precio de oferta debe ser menor al precio normal');
       }
 
-      const imagenesUrls = [];
+      const rutasImagenes = []; // ✅ MEJORADO: Guardar solo rutas, no URLs completas
 
+      // Mover imágenes de TEMP a PUBLICADOS
       for (let i = 1; i <= 3; i++) {
-        const imagen = formData[`imagen${i}`];
-        const fileExt = imagen.name.split('.').pop();
-        const timestamp = Date.now();
-        const random = Math.random().toString(36).substring(7);
-        const fileName = `${timestamp}_${random}_imagen${i}.${fileExt}`;
+        const rutaTemp = imagenesTemp[`temp${i}`];
 
-        const { error: uploadError } = await supabase.storage
+        if (!rutaTemp) {
+          throw new Error(`Imagen ${i} no encontrada`);
+        }
+
+        // Crear nueva ruta en PUBLICADOS
+        const rutaPublicada = rutaTemp.replace('temp/', 'publicados/');
+
+        // Mover archivo
+        const { error: moveError } = await supabase.storage
           .from('productos')
-          .upload(fileName, imagen);
+          .move(rutaTemp, rutaPublicada);
 
-        if (uploadError) throw uploadError;
+        if (moveError) {
+          console.error('Error al mover imagen:', moveError);
+          throw new Error(`Error al publicar imagen ${i}`);
+        }
 
-        const { data } = supabase.storage
-          .from('productos')
-          .getPublicUrl(fileName);
-
-        imagenesUrls.push(data.publicUrl);
+        // ✅ MEJORADO: Guardar solo la RUTA, no la URL completa
+        rutasImagenes.push(rutaPublicada);
+        imagenesMovidas.push(rutaPublicada); // Para rollback
       }
 
+      // Insertar producto en la base de datos
       const { error } = await supabase
         .from('productos')
         .insert([
@@ -128,8 +214,8 @@ export default function AgregarProducto() {
             tallas: (formData.categoria !== 'Artículos Deportivos' && formData.categoria !== 'Ofertas') ? formData.tallas : null,
             precio: Number(formData.precio),
             precio_oferta: formData.precio_oferta ? Number(formData.precio_oferta) : null,
-            imagenes: imagenesUrls,
-            imagen_url: imagenesUrls[0]
+            imagenes: rutasImagenes, // ✅ Array de rutas
+            imagen_url: rutasImagenes[0] // ✅ Primera ruta
           }
         ]);
 
@@ -137,6 +223,7 @@ export default function AgregarProducto() {
 
       setMensaje({ tipo: 'success', texto: '✅ Producto agregado correctamente' });
       
+      // Limpiar formulario
       setFormData({
         nombre: '',
         categoria: 'Hombre',
@@ -156,13 +243,53 @@ export default function AgregarProducto() {
         preview3: null
       });
 
+      setImagenesTemp({
+        temp1: null,
+        temp2: null,
+        temp3: null
+      });
+
       setTimeout(() => navigate('/admin/productos'), 2000);
 
     } catch (error) {
+      // 🆕 ROLLBACK: Si falla la BD, devolver imágenes a temp/
+      if (imagenesMovidas.length > 0) {
+        console.log('⚠️ Error en BD, revirtiendo imágenes...');
+        for (const rutaPublicada of imagenesMovidas) {
+          try {
+            const rutaTemp = rutaPublicada.replace('publicados/', 'temp/');
+            await supabase.storage
+              .from('productos')
+              .move(rutaPublicada, rutaTemp);
+          } catch (rollbackError) {
+            console.error('Error en rollback:', rollbackError);
+          }
+        }
+      }
+
       setMensaje({ tipo: 'error', texto: `❌ Error: ${error.message}` });
     } finally {
       setLoading(false);
     }
+  };
+
+  // Función para cancelar y limpiar TEMP
+  const cancelarYLimpiar = async () => {
+    // Borrar todas las imágenes temporales
+    for (let i = 1; i <= 3; i++) {
+      const rutaTemp = imagenesTemp[`temp${i}`];
+      if (rutaTemp) {
+        try {
+          await supabase.storage
+            .from('productos')
+            .remove([rutaTemp]);
+        } catch (error) {
+          console.error('Error al limpiar temp:', error);
+        }
+      }
+    }
+
+    navigate('/admin/productos');
   };
 
   const mostrarMarca = formData.categoria !== 'Artículos Deportivos' && formData.categoria !== 'Ofertas';
@@ -212,7 +339,7 @@ export default function AgregarProducto() {
             <input
               type="text"
               value={formData.nombre}
-              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
               required
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
               placeholder="Ej: Nike Air Max 2024"
@@ -223,7 +350,7 @@ export default function AgregarProducto() {
             <label className="block text-gray-300 mb-2 font-semibold">Categoría *</label>
             <select
               value={formData.categoria}
-              onChange={(e) => setFormData({ ...formData, categoria: e.target.value, marca: '', subcategoria: '', tallas: [] })}
+              onChange={(e) => setFormData(prev => ({ ...prev, categoria: e.target.value, marca: '', subcategoria: '', tallas: [] }))}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
             >
               <option value="2x95">🔥 2 x 95</option>
@@ -240,7 +367,7 @@ export default function AgregarProducto() {
               <label className="block text-gray-300 mb-2 font-semibold">Subcategoría *</label>
               <select
                 value={formData.subcategoria}
-                onChange={(e) => setFormData({ ...formData, subcategoria: e.target.value })}
+                onChange={(e) => setFormData(prev => ({ ...prev, subcategoria: e.target.value }))}
                 required
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
               >
@@ -259,7 +386,7 @@ export default function AgregarProducto() {
               </label>
               <select
                 value={formData.marca}
-                onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
+                onChange={(e) => setFormData(prev => ({ ...prev, marca: e.target.value }))}
                 required={marcaRequerida}
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
               >
@@ -310,7 +437,7 @@ export default function AgregarProducto() {
                 step="0.01"
                 min="0"
                 value={formData.precio}
-                onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
+                onChange={(e) => setFormData(prev => ({ ...prev, precio: e.target.value }))}
                 required
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
                 placeholder="199.90"
@@ -325,7 +452,7 @@ export default function AgregarProducto() {
                 step="0.01"
                 min="0"
                 value={formData.precio_oferta}
-                onChange={(e) => setFormData({ ...formData, precio_oferta: e.target.value })}
+                onChange={(e) => setFormData(prev => ({ ...prev, precio_oferta: e.target.value }))}
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-600"
                 placeholder="149.90"
               />
@@ -382,12 +509,13 @@ export default function AgregarProducto() {
               <Save size={20} />
               {loading ? 'Guardando...' : 'Guardar Producto'}
             </button>
-            <Link
-              to="/admin/productos"
+            <button
+              type="button"
+              onClick={cancelarYLimpiar}
               className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition"
             >
               Cancelar
-            </Link>
+            </button>
           </div>
         </form>
       </div>
