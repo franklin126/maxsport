@@ -8,6 +8,8 @@ import Login from './pages/admin/Login';
 import Dashboard from './pages/admin/Dashboard';
 import AgregarProducto from './pages/admin/AgregarProducto';
 import ListaProductos from './pages/admin/ListaProductos';
+import POS from './pages/admin/POS';
+import Estadisticas from './pages/admin/Estadisticas';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 
 const marcasPorCategoria = {
@@ -42,7 +44,6 @@ function ModalProducto({ producto, onClose }) {
 
   const imagenes = producto.imagenes || [producto.imagen_url];
 
-  // Precargar todas las imágenes al abrir el modal
   useEffect(() => {
     const preloadImages = () => {
       imagenes.forEach((src, index) => {
@@ -53,7 +54,6 @@ function ModalProducto({ producto, onClose }) {
         img.src = src;
       });
     };
-    
     preloadImages();
   }, [imagenes]);
 
@@ -79,7 +79,6 @@ function ModalProducto({ producto, onClose }) {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
     if (!zoom) {
       setZoom(true);
       setZoomLevel(2);
@@ -98,10 +97,7 @@ function ModalProducto({ producto, onClose }) {
       e.preventDefault();
       e.stopPropagation();
       setIsDragging(true);
-      setDragStart({
-        x: e.clientX - panPosition.x,
-        y: e.clientY - panPosition.y
-      });
+      setDragStart({ x: e.clientX - panPosition.x, y: e.clientY - panPosition.y });
     }
   };
 
@@ -109,18 +105,12 @@ function ModalProducto({ producto, onClose }) {
     if (isDragging && zoom) {
       e.preventDefault();
       e.stopPropagation();
-      setPanPosition({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y
-      });
+      setPanPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
     }
   };
 
   const handleMouseUp = (e) => {
-    if (isDragging) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+    if (isDragging) { e.preventDefault(); e.stopPropagation(); }
     setIsDragging(false);
   };
 
@@ -128,10 +118,7 @@ function ModalProducto({ producto, onClose }) {
     if (zoom && zoomLevel > 1) {
       e.stopPropagation();
       setIsDragging(true);
-      setDragStart({
-        x: e.touches[0].clientX - panPosition.x,
-        y: e.touches[0].clientY - panPosition.y
-      });
+      setDragStart({ x: e.touches[0].clientX - panPosition.x, y: e.touches[0].clientY - panPosition.y });
     }
   };
 
@@ -139,17 +126,12 @@ function ModalProducto({ producto, onClose }) {
     if (isDragging && zoom) {
       e.preventDefault();
       e.stopPropagation();
-      setPanPosition({
-        x: e.touches[0].clientX - dragStart.x,
-        y: e.touches[0].clientY - dragStart.y
-      });
+      setPanPosition({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
     }
   };
 
   const handleTouchEnd = (e) => {
-    if (isDragging) {
-      e.stopPropagation();
-    }
+    if (isDragging) { e.stopPropagation(); }
     setIsDragging(false);
   };
 
@@ -176,7 +158,7 @@ function ModalProducto({ producto, onClose }) {
 
           <div className="grid md:grid-cols-2 gap-6 p-6">
             <div className="relative">
-              <div 
+              <div
                 className={`aspect-square bg-white rounded-lg overflow-hidden relative ${zoom ? 'cursor-move' : 'cursor-zoom-in'}`}
                 onClick={handleImageClick}
                 onMouseDown={handleMouseDown}
@@ -193,8 +175,8 @@ function ModalProducto({ producto, onClose }) {
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
                   </div>
                 )}
-                <img 
-                  src={imagenes[imagenActual]} 
+                <img
+                  src={imagenes[imagenActual]}
                   alt={producto.nombre}
                   className="w-full h-full object-contain transition-transform duration-300 select-none"
                   style={{
@@ -237,7 +219,7 @@ function ModalProducto({ producto, onClose }) {
 
             <div>
               <h2 className="text-3xl font-bold text-white mb-4">{producto.nombre}</h2>
-              
+
               {producto.marca && (
                 <p className="text-gray-400 mb-2">
                   <span className="font-semibold">Marca:</span> {producto.marca}
@@ -254,6 +236,21 @@ function ModalProducto({ producto, onClose }) {
                       </span>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Stock visible para el cliente */}
+              {producto.stock !== null && (
+                <div className="mb-4">
+                  {producto.stock === 0 ? (
+                    <span className="inline-block bg-red-900 text-red-300 border border-red-600 text-sm font-bold px-3 py-1 rounded-full">
+                      Agotado
+                    </span>
+                  ) : (
+                    <span className="inline-block bg-green-900 text-green-300 border border-green-600 text-sm font-bold px-3 py-1 rounded-full">
+                      {producto.stock} disponibles
+                    </span>
+                  )}
                 </div>
               )}
 
@@ -297,17 +294,17 @@ function ModalProducto({ producto, onClose }) {
       </div>
 
       {modalYape && (
-        <ModalYape 
-          producto={producto} 
+        <ModalYape
+          producto={producto}
           precio={precioMostrar}
-          onClose={() => setModalYape(false)} 
+          onClose={() => setModalYape(false)}
         />
       )}
     </>
   );
 }
 
-// Modal 2x95 - Confirmación de compra
+// Modal 2x95
 function Modal2x95({ productosSeleccionados, onClose, productos }) {
   const [modalYape, setModalYape] = useState(false);
 
@@ -328,7 +325,6 @@ Precio: S/ ${producto2.precio.toFixed(2)}
 
 Total original: S/ ${precioOriginal.toFixed(2)}
 OFERTA 2x95: S/ 95.00`;
-    
     window.open(`https://wa.me/51929505174?text=${encodeURIComponent(mensaje)}`, '_blank');
   };
 
@@ -345,10 +341,10 @@ OFERTA 2x95: S/ 95.00`;
           </h2>
 
           <div className="grid md:grid-cols-2 gap-4 mb-6">
-            {[producto1, producto2].map((producto, idx) => (
+            {[producto1, producto2].map((producto) => (
               <div key={producto.id} className="bg-gray-800 rounded-lg p-4 border-2 border-yellow-500">
-                <img 
-                  src={producto.imagenes?.[0] || producto.imagen_url} 
+                <img
+                  src={producto.imagenes?.[0] || producto.imagen_url}
                   alt={producto.nombre}
                   className="w-full aspect-square object-cover rounded-lg mb-3"
                 />
@@ -364,10 +360,8 @@ OFERTA 2x95: S/ 95.00`;
             <div className="text-center">
               <p className="text-gray-300 mb-2">Precio Original Total:</p>
               <p className="text-2xl text-gray-400 line-through mb-3">S/ {precioOriginal.toFixed(2)}</p>
-              
               <p className="text-gray-300 mb-2">🎁 PRECIO OFERTA 2x95:</p>
               <p className="text-5xl font-bold text-yellow-400 mb-2">S/ 95.00</p>
-              
               <div className="inline-block bg-green-600 text-white px-4 py-2 rounded-full font-bold">
                 ¡Ahorras S/ {(precioOriginal - precioOferta).toFixed(2)}!
               </div>
@@ -382,32 +376,27 @@ OFERTA 2x95: S/ 95.00`;
               <Phone size={20} />
               Confirmar por WhatsApp
             </button>
-
             <button
               onClick={() => setModalYape(true)}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-lg transition flex items-center justify-center gap-2"
             >
-              💳 Pagar con Yape (S/ 95.00)
+              💳 Pagar con Yape - S/ 95.00
             </button>
           </div>
         </div>
       </div>
-
       {modalYape && (
-        <ModalYape 
-          producto={{
-            nombre: `2x95: ${producto1.nombre} + ${producto2.nombre}`,
-            ...producto1
-          }}
+        <ModalYape
+          producto={{ nombre: `Oferta 2x95: ${producto1.nombre} + ${producto2.nombre}` }}
           precio={95}
-          onClose={() => setModalYape(false)} 
+          onClose={() => setModalYape(false)}
         />
       )}
     </>
   );
 }
 
-// Modal de Yape
+// Modal Yape
 function ModalYape({ producto, precio, onClose }) {
   const handleYaPague = () => {
     const mensaje = `Hola, ya completé el pago por Yape de: ${producto.nombre} (S/ ${precio.toFixed(2)}). Adjunto captura de pantalla.`;
@@ -457,7 +446,7 @@ function ModalYape({ producto, precio, onClose }) {
           <div>
             <p className="text-red-300 text-sm font-bold">⚠️ Advertencia de Seguridad</p>
             <p className="text-gray-300 text-xs mt-1">
-              No se admiten estafas. Verifica siempre que yapeas al número correcto. 
+              No se admiten estafas. Verifica siempre que yapeas al número correcto.
               El pago se confirma solo tras verificación del comprobante.
             </p>
           </div>
@@ -485,13 +474,21 @@ function TiendaPublica() {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
-  
-  // Estados para 2x95
   const [productosSeleccionados2x95, setProductosSeleccionados2x95] = useState([]);
   const [mostrarModal2x95, setMostrarModal2x95] = useState(false);
 
   useEffect(() => {
     cargarProductos();
+
+    // Realtime: se actualiza automático cuando cambia stock en Supabase
+    const canal = supabase
+      .channel('productos-stock')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'productos' }, (payload) => {
+        setProductos(prev => prev.map(p => p.id === payload.new.id ? { ...p, stock: payload.new.stock } : p));
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(canal);
   }, []);
 
   const cargarProductos = async () => {
@@ -500,7 +497,6 @@ function TiendaPublica() {
         .from('productos')
         .select('*')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       setProductos(data || []);
     } catch (error) {
@@ -524,15 +520,11 @@ function TiendaPublica() {
     }
 
     if (searchTerm && categoriaActual !== 'Artículos Deportivos') {
-      productosFilt = productosFilt.filter(p => 
-        p.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      productosFilt = productosFilt.filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase()));
     }
-
     if (tallaFiltro && categoriaActual !== 'Ofertas' && categoriaActual !== '2x95') {
       productosFilt = productosFilt.filter(p => p.tallas && p.tallas.includes(tallaFiltro));
     }
-
     if (marcaFiltro && categoriaActual !== 'Ofertas' && categoriaActual !== '2x95') {
       productosFilt = productosFilt.filter(p => p.marca === marcaFiltro);
     }
@@ -557,7 +549,6 @@ function TiendaPublica() {
       if (productosSeleccionados2x95.length < 2) {
         const nuevaSeleccion = [...productosSeleccionados2x95, productoId];
         setProductosSeleccionados2x95(nuevaSeleccion);
-        
         if (nuevaSeleccion.length === 2) {
           setMostrarModal2x95(true);
         }
@@ -581,17 +572,12 @@ function TiendaPublica() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <img 
-                src="/logo.png" 
-                alt="Logo" 
-                className="w-10 h-8 rounded object-cover"
-              />
+              <img src="/logo.png" alt="Logo" className="w-10 h-8 rounded object-cover" />
               <h1 className="text-2xl font-bold">
                 <span className="text-red-600">MAX</span>
                 <span className="text-white"> SPORT</span>
               </h1>
             </div>
-
             <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden">
               {menuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -614,23 +600,17 @@ function TiendaPublica() {
 
       {/* Portada */}
       <div className="relative h-[35vh] md:h-[40vh] lg:h-[45vh]">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/max.png')" }}
-        ></div>
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/max.png')" }}></div>
         <div className="absolute inset-0 bg-black/35"></div>
         <div className="absolute inset-0 bg-black/10"></div>
-
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
           <h1 className="text-3xl md:text-5xl font-black mb-2">
             <span className="text-red-600">MAX</span>
             <span className="text-white"> SPORT</span>
           </h1>
-
           <p className="text-sm md:text-base text-white mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
             Tu mejor opción en zapatillas y artículos deportivos aquí en HUANCAVELICA
           </p>
-
           <div className="text-sm md:text-base text-yellow-400 font-bold animate-pulse drop-shadow-[0_2px_6px_rgba(0,0,0,1)]">
             ✨ Ofertas especiales cada semana ✨
           </div>
@@ -673,13 +653,9 @@ function TiendaPublica() {
             { nombre: 'Ultralong', logo: '/ultralong.png' },
             { nombre: 'Anda', logo: '/anda.png' }
           ].map((marca, index) => (
-            <div
-              key={index}
-              className="flex-shrink-0 bg-white flex items-center justify-center"
-              style={{ width: '100px', height: '56px' }}
-            >
-              <img 
-                src={marca.logo} 
+            <div key={index} className="flex-shrink-0 bg-white flex items-center justify-center" style={{ width: '100px', height: '56px' }}>
+              <img
+                src={marca.logo}
                 alt={marca.nombre}
                 className="w-full h-full object-contain p-2"
                 onError={(e) => {
@@ -751,7 +727,6 @@ function TiendaPublica() {
                 </li>
               </ol>
             </div>
-            
             {productosSeleccionados2x95.length > 0 && (
               <div className="bg-green-900 bg-opacity-40 rounded-lg p-4 border border-green-500">
                 <p className="text-green-300 font-bold text-center">
@@ -771,22 +746,15 @@ function TiendaPublica() {
               className="w-full pl-10 pr-4 py-3 bg-gray-900 border-2 border-yellow-500 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
             />
           </div>
-          
+
           {loading ? (
-            <div className="text-center py-16">
-              <p className="text-xl text-gray-400">Cargando productos...</p>
-            </div>
+            <div className="text-center py-16"><p className="text-xl text-gray-400">Cargando productos...</p></div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 md:gap-4">
               {productosFiltrados().map((producto) => {
                 const estaSeleccionado = productosSeleccionados2x95.includes(producto.id);
                 return (
-                  <div 
-                    key={producto.id} 
-                    className={`bg-gray-900 rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition border-2 ${
-                      estaSeleccionado ? 'border-green-500' : 'border-yellow-500'
-                    }`}
-                  >
+                  <div key={producto.id} className={`bg-gray-900 rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition border-2 ${estaSeleccionado ? 'border-green-500' : 'border-yellow-500'}`}>
                     <div className="relative cursor-pointer" onClick={() => setProductoSeleccionado(producto)}>
                       {estaSeleccionado && (
                         <div className="absolute top-2 left-2 bg-green-500 text-white font-bold px-3 py-1 rounded-full text-xs z-10 flex items-center gap-1">
@@ -801,17 +769,12 @@ function TiendaPublica() {
                     <div className="p-2 md:p-4">
                       <h3 className="font-bold text-sm md:text-base mb-1 md:mb-2 line-clamp-2">{producto.nombre}</h3>
                       {producto.precio && (
-                        <p className="text-base md:text-lg font-bold text-gray-400 mb-2">
-                          Precio: S/ {producto.precio.toFixed(2)}
-                        </p>
+                        <p className="text-base md:text-lg font-bold text-gray-400 mb-2">Precio: S/ {producto.precio.toFixed(2)}</p>
                       )}
                       {producto.marca && <p className="text-xs md:text-sm text-gray-400 mb-1">Marca: {producto.marca}</p>}
                       {producto.tallas && <p className="text-xs md:text-sm text-gray-400 mb-2 md:mb-4">Tallas: {producto.tallas.join(', ')}</p>}
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSeleccionar2x95(producto.id);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); handleSeleccionar2x95(producto.id); }}
                         disabled={productosSeleccionados2x95.length >= 2 && !estaSeleccionado}
                         className={`w-full font-bold py-2 md:py-3 px-2 md:px-4 rounded-lg transition flex items-center justify-center gap-2 text-xs md:text-base ${
                           estaSeleccionado
@@ -821,14 +784,7 @@ function TiendaPublica() {
                             : 'bg-yellow-500 hover:bg-yellow-600 text-black'
                         }`}
                       >
-                        {estaSeleccionado ? (
-                          <>
-                            <CheckCircle size={16} className="md:w-5 md:h-5" />
-                            Seleccionado
-                          </>
-                        ) : (
-                          'Seleccionar este'
-                        )}
+                        {estaSeleccionado ? <><CheckCircle size={16} />Seleccionado</> : 'Seleccionar este'}
                       </button>
                     </div>
                   </div>
@@ -836,11 +792,8 @@ function TiendaPublica() {
               })}
             </div>
           )}
-
           {!loading && productosFiltrados().length === 0 && (
-            <div className="text-center py-16">
-              <p className="text-xl text-gray-400">No hay productos disponibles en esta oferta</p>
-            </div>
+            <div className="text-center py-16"><p className="text-xl text-gray-400">No hay productos disponibles en esta oferta</p></div>
           )}
         </div>
       )}
@@ -865,7 +818,7 @@ function TiendaPublica() {
         </div>
       )}
 
-      {/* Sección de Ofertas */}
+      {/* Sección Ofertas */}
       {categoriaActual === 'Ofertas' && (
         <div className="max-w-7xl mx-auto px-4 py-6">
           <h2 className="text-3xl font-bold text-center mb-6">
@@ -881,22 +834,14 @@ function TiendaPublica() {
               className="w-full pl-10 pr-4 py-3 bg-gray-900 border-2 border-yellow-500 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
             />
           </div>
-          
           {loading ? (
-            <div className="text-center py-16">
-              <p className="text-xl text-gray-400">Cargando ofertas...</p>
-            </div>
+            <div className="text-center py-16"><p className="text-xl text-gray-400">Cargando ofertas...</p></div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 md:gap-4">
               {productosFiltrados().map((producto) => (
-                <div 
-                  key={producto.id} 
-                  className="bg-gray-900 rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition border-2 border-yellow-500"
-                >
+                <div key={producto.id} className="bg-gray-900 rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition border-2 border-yellow-500">
                   <div className="relative cursor-pointer" onClick={() => setProductoSeleccionado(producto)}>
-                    <div className="absolute top-2 right-2 bg-yellow-500 text-black font-bold px-3 py-1 rounded-full text-xs md:text-sm z-10">
-                      OFERTA
-                    </div>
+                    <div className="absolute top-2 right-2 bg-yellow-500 text-black font-bold px-3 py-1 rounded-full text-xs md:text-sm z-10">OFERTA</div>
                     <div className="aspect-square bg-white">
                       <img src={producto.imagenes?.[0] || producto.imagen_url} alt={producto.nombre} className="w-full h-full object-cover" />
                     </div>
@@ -918,10 +863,7 @@ function TiendaPublica() {
                     {producto.marca && <p className="text-xs md:text-sm text-gray-400 mb-1">Marca: {producto.marca}</p>}
                     {producto.tallas && <p className="text-xs md:text-sm text-gray-400 mb-2 md:mb-4">Tallas: {producto.tallas.join(', ')}</p>}
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleWhatsApp(producto);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); handleWhatsApp(producto); }}
                       className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 md:py-3 px-2 md:px-4 rounded-lg transition flex items-center justify-center gap-2 text-xs md:text-base"
                     >
                       <Phone size={16} className="md:w-5 md:h-5" />
@@ -933,11 +875,8 @@ function TiendaPublica() {
               ))}
             </div>
           )}
-
           {!loading && productosFiltrados().length === 0 && (
-            <div className="text-center py-16">
-              <p className="text-xl text-gray-400">No hay ofertas disponibles</p>
-            </div>
+            <div className="text-center py-16"><p className="text-xl text-gray-400">No hay ofertas disponibles</p></div>
           )}
         </div>
       )}
@@ -985,16 +924,11 @@ function TiendaPublica() {
           </div>
 
           {loading ? (
-            <div className="text-center py-16">
-              <p className="text-xl text-gray-400">Cargando productos...</p>
-            </div>
+            <div className="text-center py-16"><p className="text-xl text-gray-400">Cargando productos...</p></div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 md:gap-4">
               {productosFiltrados().map((producto) => (
-                <div 
-                  key={producto.id} 
-                  className="bg-gray-900 rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition border-2 border-red-600"
-                >
+                <div key={producto.id} className="bg-gray-900 rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition border-2 border-red-600">
                   <div className="cursor-pointer" onClick={() => setProductoSeleccionado(producto)}>
                     <div className="aspect-square bg-white">
                       <img src={producto.imagenes?.[0] || producto.imagen_url} alt={producto.nombre} className="w-full h-full object-cover" />
@@ -1014,13 +948,17 @@ function TiendaPublica() {
                         )}
                       </div>
                     )}
+                    {/* Indicador de stock en tarjeta */}
+                    {producto.stock !== null && producto.stock === 0 && (
+                      <p className="text-red-400 text-xs mb-1 font-bold">Agotado</p>
+                    )}
+                    {producto.stock !== null && producto.stock > 0 && (
+                      <p className="text-green-400 text-xs mb-1 font-bold">{producto.stock} disponibles</p>
+                    )}
                     {producto.marca && <p className="text-xs md:text-sm text-gray-400 mb-1">Marca: {producto.marca}</p>}
                     {producto.tallas && <p className="text-xs md:text-sm text-gray-400 mb-2 md:mb-4">Tallas: {producto.tallas.join(', ')}</p>}
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleWhatsApp(producto);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); handleWhatsApp(producto); }}
                       className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 md:py-3 px-2 md:px-4 rounded-lg transition flex items-center justify-center gap-2 text-xs md:text-base"
                     >
                       <Phone size={16} className="md:w-5 md:h-5" />
@@ -1032,32 +970,21 @@ function TiendaPublica() {
               ))}
             </div>
           )}
-
           {!loading && productosFiltrados().length === 0 && (
-            <div className="text-center py-16">
-              <p className="text-xl text-gray-400">No se encontraron productos</p>
-            </div>
+            <div className="text-center py-16"><p className="text-xl text-gray-400">No se encontraron productos</p></div>
           )}
         </div>
       )}
 
-      {/* Modal de Producto individual */}
       {productoSeleccionado && (
-        <ModalProducto 
-          producto={productoSeleccionado} 
-          onClose={() => setProductoSeleccionado(null)} 
-        />
+        <ModalProducto producto={productoSeleccionado} onClose={() => setProductoSeleccionado(null)} />
       )}
 
-      {/* Modal 2x95 */}
       {mostrarModal2x95 && (
         <Modal2x95
           productosSeleccionados={productosSeleccionados2x95}
           productos={productos}
-          onClose={() => {
-            setMostrarModal2x95(false);
-            setProductosSeleccionados2x95([]);
-          }}
+          onClose={() => { setMostrarModal2x95(false); setProductosSeleccionados2x95([]); }}
         />
       )}
 
@@ -1086,6 +1013,8 @@ function App() {
         <Route path="/admin/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/admin/agregar" element={<ProtectedRoute><AgregarProducto /></ProtectedRoute>} />
         <Route path="/admin/productos" element={<ProtectedRoute><ListaProductos /></ProtectedRoute>} />
+        <Route path="/admin/pos" element={<ProtectedRoute><POS /></ProtectedRoute>} />
+        <Route path="/admin/estadisticas" element={<ProtectedRoute><Estadisticas /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
