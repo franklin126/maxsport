@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
-import { LogOut, Package, PlusCircle, List, Home, ShoppingCart, TrendingUp } from 'lucide-react';
+import { LogOut, Package, PlusCircle, List, Home, ShoppingCart, TrendingUp, Printer, Barcode } from 'lucide-react';
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -171,6 +171,22 @@ export default function Dashboard() {
               <div>
                 <h3 className="text-2xl font-bold text-white mb-1">Ver Productos</h3>
                 <p className="text-gray-400">Gestiona, edita stock, código de barras y ubicación</p>
+              </div>
+            </div>
+          </Link>
+
+          {/* Cambio 2: Imprimir código existente */}
+          <Link
+            to="/admin/imprimir-codigo"
+            className="bg-gray-900 hover:bg-gray-800 border-2 border-purple-600 rounded-xl p-8 transition group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="bg-purple-600 p-4 rounded-lg group-hover:scale-110 transition">
+                <Printer size={32} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-1">Imprimir Código</h3>
+                <p className="text-gray-400">Busca cualquier código existente e imprime las etiquetas que necesites</p>
               </div>
             </div>
           </Link>
