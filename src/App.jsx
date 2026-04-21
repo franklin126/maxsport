@@ -10,6 +10,7 @@ import AgregarProducto from './pages/admin/AgregarProducto';
 import ListaProductos from './pages/admin/ListaProductos';
 import POS from './pages/admin/POS';
 import Estadisticas from './pages/admin/Estadisticas';
+import ImprimirCodigo from './pages/admin/ImprimirCodigo';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 
 const marcasPorCategoria = {
@@ -229,13 +230,36 @@ function ModalProducto({ producto, onClose }) {
               {producto.tallas && (
                 <div className="mb-4">
                   <p className="font-semibold text-gray-300 mb-2">Tallas Disponibles:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {producto.tallas.map(talla => (
-                      <span key={talla} className="bg-gray-800 text-white px-3 py-1 rounded-lg border border-red-600">
-                        {talla}
-                      </span>
-                    ))}
-                  </div>
+                  {/* Cambio 4: si hay tallas_stock mostrar unidades, sino solo las tallas */}
+                  {producto.tallas_stock && Object.keys(producto.tallas_stock).length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(producto.tallas_stock)
+                        .sort((a, b) => Number(a[0]) - Number(b[0]))
+                        .map(([talla, unidades]) => (
+                          <div key={talla} className={`flex flex-col items-center px-3 py-2 rounded-lg border ${
+                            unidades === 0
+                              ? 'bg-gray-800 border-gray-700 opacity-50'
+                              : unidades <= 2
+                              ? 'bg-yellow-900/40 border-yellow-600'
+                              : 'bg-gray-800 border-red-600'
+                          }`}>
+                            <span className="text-white font-bold text-sm">{talla}</span>
+                            <span className={`text-xs font-semibold ${
+                              unidades === 0 ? 'text-gray-500' :
+                              unidades <= 2 ? 'text-yellow-400' : 'text-green-400'
+                            }`}>{unidades === 0 ? 'agot.' : `${unidades} ud`}</span>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {producto.tallas.map(talla => (
+                        <span key={talla} className="bg-gray-800 text-white px-3 py-1 rounded-lg border border-red-600">
+                          {talla}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -952,8 +976,27 @@ function TiendaPublica() {
                     {producto.stock !== null && producto.stock === 0 && (
                       <p className="text-red-400 text-xs mb-1 font-bold">Agotado</p>
                     )}
-                    {producto.stock !== null && producto.stock > 0 && (
-                      <p className="text-green-400 text-xs mb-1 font-bold">{producto.stock} disponibles</p>
+                    {/* Cambio 4: si hay tallas_stock mostrar detalle por talla, sino stock general */}
+                    {producto.tallas_stock && Object.keys(producto.tallas_stock).length > 0 ? (
+                      <div className="mb-1">
+                        <div className="flex flex-wrap gap-1">
+                          {Object.entries(producto.tallas_stock)
+                            .sort((a, b) => Number(a[0]) - Number(b[0]))
+                            .map(([talla, unidades]) => (
+                              <span key={talla} className={`text-xs px-1.5 py-0.5 rounded font-semibold ${
+                                unidades === 0 ? 'bg-gray-700 text-gray-500 line-through' :
+                                unidades <= 2 ? 'bg-yellow-900 text-yellow-300' :
+                                'bg-gray-800 text-green-400'
+                              }`}>
+                                T{talla}: {unidades}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    ) : (
+                      producto.stock !== null && producto.stock > 0 && (
+                        <p className="text-green-400 text-xs mb-1 font-bold">{producto.stock} disponibles</p>
+                      )
                     )}
                     {producto.marca && <p className="text-xs md:text-sm text-gray-400 mb-1">Marca: {producto.marca}</p>}
                     {producto.tallas && <p className="text-xs md:text-sm text-gray-400 mb-2 md:mb-4">Tallas: {producto.tallas.join(', ')}</p>}
@@ -1015,6 +1058,7 @@ function App() {
         <Route path="/admin/productos" element={<ProtectedRoute><ListaProductos /></ProtectedRoute>} />
         <Route path="/admin/pos" element={<ProtectedRoute><POS /></ProtectedRoute>} />
         <Route path="/admin/estadisticas" element={<ProtectedRoute><Estadisticas /></ProtectedRoute>} />
+        <Route path="/admin/imprimir-codigo" element={<ProtectedRoute><ImprimirCodigo /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
