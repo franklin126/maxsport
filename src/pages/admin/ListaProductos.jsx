@@ -54,17 +54,22 @@ export default function ListaProductos() {
     setLoading(true);
 
     try {
+      // Si hay tallas_stock, recalcular stock total automáticamente
+      const ts = productoEditando.tallas_stock || {};
+      const hayTS = Object.keys(ts).length > 0;
+      const stockCalculado = hayTS
+        ? Object.values(ts).reduce((s, v) => s + (parseInt(v) || 0), 0)
+        : (productoEditando.stock !== '' && productoEditando.stock !== null ? Number(productoEditando.stock) : null);
+
       const updateData = {
         nombre: productoEditando.nombre,
         marca: productoEditando.marca,
         tallas: productoEditando.tallas,
+        tallas_stock: hayTS ? ts : null,
         precio: Number(productoEditando.precio),
         precio_oferta: productoEditando.precio_oferta ? Number(productoEditando.precio_oferta) : null,
-        // Campos POS
         codigo_barras: productoEditando.codigo_barras?.trim() || null,
-        stock: productoEditando.stock !== '' && productoEditando.stock !== null
-          ? Number(productoEditando.stock)
-          : null,
+        stock: stockCalculado,
         ubicacion_almacen: productoEditando.ubicacion_almacen?.trim() || null,
       };
 
@@ -213,10 +218,49 @@ export default function ListaProductos() {
                     <input
                       type="text"
                       value={productoEditando.tallas?.join(', ') || ''}
-                      onChange={(e) => setProductoEditando({ ...productoEditando, tallas: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
+                      onChange={(e) => {
+                        const nuevasTallas = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
+                        // Reconstruir tallas_stock solo con las tallas actuales
+                        const tsActual = productoEditando.tallas_stock || {};
+                        const nuevoTS = {};
+                        nuevasTallas.forEach(t => { nuevoTS[t] = tsActual[t] ?? 1; });
+                        setProductoEditando({ ...productoEditando, tallas: nuevasTallas, tallas_stock: nuevoTS });
+                      }}
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
                       placeholder="38, 39, 40, 41"
                     />
+                    {/* Unidades por talla */}
+                    {productoEditando.tallas && productoEditando.tallas.length > 0 && (
+                      <div className="mt-3 bg-gray-800 rounded-xl p-3 border border-gray-700">
+                        <p className="text-gray-400 text-xs mb-2 font-semibold">Unidades por talla:</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {productoEditando.tallas.map(talla => (
+                            <div key={talla} className="flex items-center gap-2 bg-gray-700 rounded-lg px-2 py-1.5">
+                              <span className="text-white text-xs font-bold w-7 flex-shrink-0">T{talla}</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={(productoEditando.tallas_stock || {})[talla] ?? 1}
+                                onChange={(e) => {
+                                  const val = Math.max(0, parseInt(e.target.value) || 0);
+                                  setProductoEditando({
+                                    ...productoEditando,
+                                    tallas_stock: { ...(productoEditando.tallas_stock || {}), [talla]: val }
+                                  });
+                                }}
+                                className="w-full bg-gray-600 border border-gray-500 rounded px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-red-500 text-center"
+                              />
+                              <span className="text-gray-400 text-xs flex-shrink-0">ud</span>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-blue-300 text-xs mt-2">
+                          Stock total: <span className="font-bold text-white">
+                            {Object.values(productoEditando.tallas_stock || {}).reduce((s, v) => s + (parseInt(v) || 0), 0)} unidades
+                          </span>
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -269,7 +313,8 @@ export default function ListaProductos() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {/* Stock */}
+                    {/* Stock — solo si no hay tallas_stock */}
+                    {(!productoEditando.tallas || productoEditando.tallas.length === 0) && (
                     <div>
                       <label className="block text-gray-300 mb-1 text-sm font-semibold">Stock actual</label>
                       <input
@@ -286,6 +331,12 @@ export default function ListaProductos() {
                         </p>
                       )}
                     </div>
+                    )}
+                    {productoEditando.tallas && productoEditando.tallas.length > 0 && (
+                    <div className="col-span-2 px-3 py-2 bg-blue-900/30 border border-blue-700 rounded-lg">
+                      <p className="text-blue-300 text-xs">Stock se calcula automáticamente desde las tallas</p>
+                    </div>
+                    )}
 
                     {/* Ubicación */}
                     <div>
@@ -360,7 +411,24 @@ export default function ListaProductos() {
                 <div className="text-sm text-gray-400 space-y-1 mb-3">
                   <p>Categoría: {producto.categoria}</p>
                   {producto.marca && <p>Marca: {producto.marca}</p>}
-                  {producto.tallas && <p>Tallas: {producto.tallas.join(', ')}</p>}
+                  {producto.tallas && (
+                    <div className="mt-1">
+                      {producto.tallas_stock && Object.keys(producto.tallas_stock).length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {Object.entries(producto.tallas_stock)
+                            .sort((a, b) => Number(a[0]) - Number(b[0]))
+                            .map(([t, u]) => (
+                              <span key={t} className={`text-xs px-1.5 py-0.5 rounded font-semibold ${
+                                u === 0 ? 'bg-gray-700 text-gray-500' :
+                                u <= 2 ? 'bg-yellow-900 text-yellow-300' : 'bg-gray-800 text-green-400'
+                              }`}>T{t}:{u}</span>
+                            ))}
+                        </div>
+                      ) : (
+                        <p>Tallas: {producto.tallas.join(', ')}</p>
+                      )}
+                    </div>
+                  )}
                   {producto.precio && (
                     <div className="mt-1">
                       {producto.precio_oferta && producto.precio_oferta < producto.precio ? (
