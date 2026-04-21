@@ -183,10 +183,17 @@ export default function AgregarProducto() {
   const [fase, setFase] = useState(null);
   const [ultimoCodigo, setUltimoCodigo] = useState(null);
 
+  // Cambio 1: Modal para preguntar cuántas copias imprimir (solo si cola tiene 1 código)
+  const [modalCopias, setModalCopias] = useState(false);
+  const [codigoParaCopias, setCodigoParaCopias] = useState(null);
+  const [cantidadCopias, setCantidadCopias] = useState(1);
+
   const [imagenesTemp, setImagenesTemp] = useState({ temp1: null, temp2: null, temp3: null });
 
   const formularioVacio = {
-    nombre: '', categoria: 'Hombre', subcategoria: '', marca: '', tallas: [],
+    nombre: '', categoria: 'Hombre', subcategoria: '', marca: '',
+    // Cambio 3: tallas_stock en lugar de tallas simples (objeto {talla: unidades})
+    tallas: [], tallas_stock: {},
     precio: '', precio_oferta: '', codigo_barras: '', stock: '',
     pasillo: '', andamio: '', nivel: '',
     imagen1: null, imagen2: null, imagen3: null
@@ -272,11 +279,31 @@ export default function AgregarProducto() {
   const handleTallasChange = (talla) => {
     setFormData(prev => {
       const tallas = [...prev.tallas];
+      const tallas_stock = { ...prev.tallas_stock };
       const index = tallas.indexOf(talla);
-      if (index > -1) { tallas.splice(index, 1); } else { tallas.push(talla); }
-      return { ...prev, tallas: tallas.sort((a, b) => Number(a) - Number(b)) };
+      if (index > -1) {
+        tallas.splice(index, 1);
+        delete tallas_stock[talla];
+      } else {
+        tallas.push(talla);
+        tallas_stock[talla] = 1;
+      }
+      return { ...prev, tallas: tallas.sort((a, b) => Number(a) - Number(b)), tallas_stock };
     });
   };
+
+  // Cambio 3: Actualizar unidades de una talla específica
+  const handleUnidadesTalla = (talla, valor) => {
+    const num = Math.max(0, parseInt(valor) || 0);
+    setFormData(prev => ({
+      ...prev,
+      tallas_stock: { ...prev.tallas_stock, [talla]: num }
+    }));
+  };
+
+  // Calcular stock total sumando todas las tallas
+  const calcularStockTotal = (ts) =>
+    Object.values(ts || {}).reduce((s, v) => s + (parseInt(v) || 0), 0);
 
   const cancelarYLimpiar = async () => {
     for (let i = 1; i <= 3; i++) {
@@ -325,18 +352,26 @@ export default function AgregarProducto() {
       const ubicacion = armarUbicacion(formData.pasillo, formData.andamio, formData.nivel);
       const codigoFinal = formData.codigo_barras.trim() || null;
 
+      // Cambio 3: calcular stock total desde tallas_stock si hay tallas, sino usar el campo manual
+      const hayTallasStock = formData.tallas.length > 0 && Object.keys(formData.tallas_stock).length > 0;
+      const stockFinal = hayTallasStock
+        ? calcularStockTotal(formData.tallas_stock)
+        : (formData.stock !== '' ? Number(formData.stock) : null);
+
       const { error } = await supabase.from('productos').insert([{
         nombre: formData.nombre,
         categoria: formData.categoria,
         subcategoria: formData.subcategoria || null,
         marca: formData.marca || null,
         tallas: (formData.categoria !== 'Artículos Deportivos' && formData.categoria !== 'Ofertas') ? formData.tallas : null,
+        // Cambio 3: guardar tallas_stock como jsonb
+        tallas_stock: hayTallasStock ? formData.tallas_stock : null,
         precio: Number(formData.precio),
         precio_oferta: formData.precio_oferta ? Number(formData.precio_oferta) : null,
         imagenes: rutasImagenes,
         imagen_url: rutasImagenes[0],
         codigo_barras: codigoFinal,
-        stock: formData.stock !== '' ? Number(formData.stock) : null,
+        stock: stockFinal,
         ubicacion_almacen: ubicacion || null,
       }]);
 
@@ -346,7 +381,6 @@ export default function AgregarProducto() {
       resetFormulario();
 
       if (codigoFinal) {
-        // Agregamos el código a la cola
         const nuevaCola = [...cola, codigoFinal];
 
         if (nuevaCola.length >= 3) {
@@ -356,8 +390,15 @@ export default function AgregarProducto() {
           setFase(null);
           setUltimoCodigo(null);
           await imprimirCola(nuevaCola);
+        } else if (nuevaCola.length === 1) {
+          // Cambio 1: Solo hay 1 código → preguntar cuántas copias quiere
+          setCola(nuevaCola);
+          setCodigoParaCopias(codigoFinal);
+          setCantidadCopias(1);
+          setModalCopias(true);
+          setFase(null);
         } else {
-          // Fila incompleta — guardamos y preguntamos
+          // 2 códigos en cola — preguntamos si agrega más
           setCola(nuevaCola);
           setUltimoCodigo(codigoFinal);
           setFase('pregunta');
@@ -383,7 +424,6 @@ export default function AgregarProducto() {
   const handleAgregarMas = () => {
     setFase(null);
     setMensaje({ tipo: '', texto: '' });
-    // El formulario ya está limpio, listo para el siguiente producto
   };
 
   // Usuario dice "No, imprimir ahora" con lo que hay en la cola
@@ -394,6 +434,44 @@ export default function AgregarProducto() {
     setFase(null);
     setUltimoCodigo(null);
     await imprimirCola(colaActual);
+  };
+
+  // Cambio 1: Confirmar cuántas copias imprimir del código recién guardado
+  const handleConfirmarCopias = async (imprimir) => {
+    setModalCopias(false);
+    if (!imprimir) {
+      // No imprimir ahora — quedarse en cola esperando más
+      setFase('pregunta');
+      setUltimoCodigo(codigoParaCopias);
+      setCodigoParaCopias(null);
+      return;
+    }
+    const copias = Math.max(1, cantidadCopias);
+    const codigosAImprimir = Array(copias).fill(codigoParaCopias);
+    // Si pide 3+ copias, imprimir directo y vaciar cola
+    // Si pide 1 o 2, rellenar cola con esas copias y si llega a 3 imprimir, si no preguntar
+    const nuevaCola = [...cola];
+    // Reemplazar el último código por N copias
+    nuevaCola.pop(); // quitar el que acabamos de agregar
+    for (let i = 0; i < copias; i++) nuevaCola.push(codigoParaCopias);
+
+    if (nuevaCola.length >= 3) {
+      setCola([]);
+      limpiarCola();
+      await imprimirCola(nuevaCola.slice(0, 3));
+      // Si hay sobrantes, guardarlos
+      if (nuevaCola.length > 3) {
+        const resto = nuevaCola.slice(3);
+        setCola(resto);
+        guardarCola(resto);
+      }
+    } else {
+      setCola(nuevaCola);
+      guardarCola(nuevaCola);
+      setFase('pregunta');
+      setUltimoCodigo(codigoParaCopias);
+    }
+    setCodigoParaCopias(null);
   };
 
   const ubicacionPreview = armarUbicacion(formData.pasillo, formData.andamio, formData.nivel);
@@ -470,6 +548,43 @@ export default function AgregarProducto() {
               : 'bg-red-900/50 border border-red-600 text-red-200'
           }`}>
             {mensaje.texto}
+          </div>
+        )}
+
+        {/* Cambio 1: Modal — ¿Cuántas copias de este código? (solo cuando cola tiene 1) */}
+        {modalCopias && codigoParaCopias && (
+          <div className="mb-6 p-6 bg-blue-900/40 border-2 border-blue-500 rounded-xl">
+            <p className="text-blue-200 font-bold text-lg mb-1">
+              ¿Cuántas etiquetas para <span className="font-mono">{codigoParaCopias}</span>?
+            </p>
+            <p className="text-blue-300 text-sm mb-4">
+              Puedes imprimir más de 1 copia de este código. Si pones 1, se espera a completar la fila de 3.
+            </p>
+            <div className="flex items-center gap-4 mb-5">
+              <label className="text-gray-300 font-semibold">Copias:</label>
+              <div className="flex items-center gap-2">
+                <button type="button"
+                  onClick={() => setCantidadCopias(c => Math.max(1, c - 1))}
+                  className="w-9 h-9 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-bold text-lg flex items-center justify-center">−</button>
+                <span className="w-12 text-center text-2xl font-black text-white">{cantidadCopias}</span>
+                <button type="button"
+                  onClick={() => setCantidadCopias(c => Math.min(9, c + 1))}
+                  className="w-9 h-9 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-bold text-lg flex items-center justify-center">+</button>
+              </div>
+            </div>
+            <div className="flex gap-3 flex-wrap">
+              <button type="button"
+                onClick={() => handleConfirmarCopias(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition">
+                <Printer size={18} />
+                Imprimir {cantidadCopias} {cantidadCopias === 1 ? 'etiqueta' : 'etiquetas'}
+              </button>
+              <button type="button"
+                onClick={() => handleConfirmarCopias(false)}
+                className="bg-gray-700 hover:bg-gray-600 text-white font-bold px-6 py-3 rounded-xl transition">
+                Guardar en cola (esperar más)
+              </button>
+            </div>
           </div>
         )}
 
@@ -562,7 +677,8 @@ export default function AgregarProducto() {
               <label className="block text-gray-300 mb-2 font-semibold">
                 Tallas Disponibles {formData.categoria === '2x95' && <span className="text-gray-500 text-sm">(Opcional)</span>}
               </label>
-              <div className="grid grid-cols-6 md:grid-cols-11 gap-2">
+              <p className="text-gray-500 text-xs mb-3">Selecciona las tallas y luego pon cuántas unidades hay de cada una</p>
+              <div className="grid grid-cols-6 md:grid-cols-11 gap-2 mb-4">
                 {tallasDisponibles.map(talla => (
                   <button key={talla} type="button" onClick={() => handleTallasChange(talla)}
                     className={`px-3 py-2 rounded-lg font-semibold transition ${
@@ -572,7 +688,33 @@ export default function AgregarProducto() {
                   </button>
                 ))}
               </div>
-              <p className="text-sm text-gray-500 mt-2">Seleccionadas: {formData.tallas.join(', ') || 'Ninguna'}</p>
+              {/* Cambio 3: Inputs de unidades por talla */}
+              {formData.tallas.length > 0 && (
+                <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                  <p className="text-gray-300 text-sm font-semibold mb-3">Unidades por talla:</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {formData.tallas.map(talla => (
+                      <div key={talla} className="flex items-center gap-2 bg-gray-700 rounded-lg px-3 py-2">
+                        <span className="text-white font-bold text-sm w-8 flex-shrink-0">T{talla}</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={formData.tallas_stock[talla] ?? 1}
+                          onChange={(e) => handleUnidadesTalla(talla, e.target.value)}
+                          className="w-full bg-gray-600 border border-gray-500 rounded px-2 py-1 text-white text-sm focus:outline-none focus:ring-1 focus:ring-red-500 text-center"
+                        />
+                        <span className="text-gray-400 text-xs flex-shrink-0">ud</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-blue-300 text-xs mt-3">
+                    Stock total calculado: <span className="font-bold text-white">{calcularStockTotal(formData.tallas_stock)} unidades</span>
+                  </p>
+                </div>
+              )}
+              {formData.tallas.length === 0 && (
+                <p className="text-sm text-gray-500 mt-2">Ninguna talla seleccionada</p>
+              )}
             </div>
           )}
 
@@ -655,7 +797,8 @@ export default function AgregarProducto() {
               )}
             </div>
 
-            {/* Stock */}
+            {/* Stock — solo si no hay tallas_stock */}
+            {formData.tallas.length === 0 && (
             <div className="mb-4">
               <label className="block text-gray-300 mb-2 font-semibold">Stock Inicial <span className="text-gray-500 text-sm">(Opcional)</span></label>
               <input type="number" min="0" value={formData.stock}
@@ -663,6 +806,12 @@ export default function AgregarProducto() {
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Ej: 10" />
             </div>
+            )}
+            {formData.tallas.length > 0 && (
+            <div className="mb-4 px-4 py-3 bg-blue-900/30 border border-blue-700 rounded-lg">
+              <p className="text-blue-300 text-sm">Stock calculado automáticamente desde las tallas: <span className="font-bold text-white">{calcularStockTotal(formData.tallas_stock)} unidades</span></p>
+            </div>
+            )}
 
             {/* Ubicación */}
             <div>
