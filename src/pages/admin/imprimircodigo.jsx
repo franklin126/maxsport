@@ -14,7 +14,6 @@ function cargarJsBarcode() {
   });
 }
 
-// ── Imprime N copias de un código en filas de 3 ──
 async function imprimirCodigos(codigo, cantidad) {
   await cargarJsBarcode();
 
