@@ -163,7 +163,6 @@ export default function ImprimirCodigo() {
           <p className="text-gray-400">Escribe o escanea un código de barras existente para imprimir etiquetas</p>
         </div>
 
-        {/* Mensaje */}
         {mensaje.texto && (
           <div className={`mb-6 p-4 rounded-lg ${
             mensaje.tipo === 'success'
@@ -176,7 +175,6 @@ export default function ImprimirCodigo() {
 
         <div className="bg-gray-900 rounded-xl p-8 border border-red-600 space-y-6">
 
-          {/* Input de código */}
           <div>
             <label className="block text-gray-300 mb-2 font-semibold flex items-center gap-2">
               <Barcode size={18} className="text-blue-400" />
@@ -207,7 +205,6 @@ export default function ImprimirCodigo() {
             <p className="text-gray-500 text-xs mt-2">Presiona Enter o haz clic en Buscar. También puedes usar el lector de códigos.</p>
           </div>
 
-          {/* Resultado del producto */}
           {producto && (
             <>
               <div className="bg-gray-800 rounded-xl p-4 border border-green-600">
@@ -239,7 +236,7 @@ export default function ImprimirCodigo() {
                   </button>
                   <span className="text-gray-400 text-sm">{cantidad} {cantidad === 1 ? 'etiqueta' : 'etiquetas'} → {Math.ceil(cantidad / 3)} {Math.ceil(cantidad / 3) === 1 ? 'fila' : 'filas'}</span>
                 </div>
-                {/* Accesos rápidos */}
+
                 <div className="flex gap-2 mt-3">
                   {[1, 3, 6, 9, 12].map(n => (
                     <button key={n} type="button"
@@ -253,7 +250,6 @@ export default function ImprimirCodigo() {
                 </div>
               </div>
 
-              {/* Botones */}
               <div className="flex gap-3">
                 <button
                   type="button"
