@@ -1,0 +1,516 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '../../services/supabase';
+import { ArrowLeft, Package, Trash2, Edit, Search, AlertTriangle } from 'lucide-react';
+
+const PAGE_SIZE = 20;
+
+export default function ListaProductos() {
+  const [productos, setProductos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [cargandoMas, setCargandoMas] = useState(false);
+  const [hayMas, setHayMas] = useState(true);
+  const [pagina, setPagina] = useState(0);
+  const [busquedaInput, setBusquedaInput] = useState('');
+  const [busqueda, setBusqueda] = useState('');
+  const [categoriaFiltro, setCategoriaFiltro] = useState('');
+  const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
+  const [productoEditando, setProductoEditando] = useState(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setBusqueda(busquedaInput);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [busquedaInput]);
+
+  const construirQuery = (paginaActual) => {
+    let query = supabase.from('productos').select('*').order('created_at', { ascending: false });
+    if (busqueda.trim()) {
+      query = query.ilike('nombre', `%${busqueda.trim()}%`);
+    }
+    if (categoriaFiltro) {
+      query = query.eq('categoria', categoriaFiltro);
+    }
+    const desde = paginaActual * PAGE_SIZE;
+    return query.range(desde, desde + PAGE_SIZE - 1);
+  };
+
+  const cargarProductos = async (paginaActual, reemplazar) => {
+    try {
+      const { data, error } = await construirQuery(paginaActual);
+      if (error) throw error;
+      setProductos(prev => reemplazar ? (data || []) : [...prev, ...(data || [])]);
+      setHayMas((data || []).length === PAGE_SIZE);
+    } catch (error) {
+      console.error('Error al cargar productos:', error);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    setPagina(0);
+    cargarProductos(0, true).finally(() => setLoading(false));
+  }, [busqueda, categoriaFiltro]);
+
+  const verMas = async () => {
+    setCargandoMas(true);
+    const siguiente = pagina + 1;
+    await cargarProductos(siguiente, false);
+    setPagina(siguiente);
+    setCargandoMas(false);
+  };
+
+  const eliminarProducto = async (id, imagenes) => {
+    if (!confirm('¿Estás seguro de eliminar este producto?')) return;
+
+    try {
+      if (imagenes && imagenes.length > 0) {
+        const archivos = imagenes.map(url => url.split('/').pop());
+        await supabase.storage.from('productos').remove(archivos);
+      }
+      const { error } = await supabase.from('productos').delete().eq('id', id);
+      if (error) throw error;
+
+      setProductos(prev => prev.filter(p => p.id !== id));
+      setMensaje({ tipo: 'success', texto: '✅ Producto eliminado correctamente' });
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+    } catch (error) {
+      setMensaje({ tipo: 'error', texto: `❌ Error: ${error.message}` });
+    }
+  };
+
+  const actualizarProducto = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const ts = productoEditando.tallas_stock || {};
+      const hayTS = Object.keys(ts).length > 0;
+      const stockCalculado = hayTS
+        ? Object.values(ts).reduce((s, v) => s + (parseInt(v) || 0), 0)
+        : (productoEditando.stock !== '' && productoEditando.stock !== null ? Number(productoEditando.stock) : null);
+
+      const updateData = {
+        nombre: productoEditando.nombre,
+        marca: productoEditando.marca,
+        tallas: productoEditando.tallas,
+        tallas_stock: hayTS ? ts : null,
+        precio: Number(productoEditando.precio),
+        precio_oferta: productoEditando.precio_oferta ? Number(productoEditando.precio_oferta) : null,
+        codigo_barras: productoEditando.codigo_barras?.trim() || null,
+        stock: stockCalculado,
+        ubicacion_almacen: productoEditando.ubicacion_almacen?.trim() || null,
+      };
+
+      if (updateData.precio_oferta && updateData.precio_oferta >= updateData.precio) {
+        throw new Error('El precio de oferta debe ser menor al precio normal');
+      }
+
+      const { error } = await supabase
+        .from('productos')
+        .update(updateData)
+        .eq('id', productoEditando.id);
+
+      if (error) throw error;
+
+      setProductos(prev => prev.map(p => p.id === productoEditando.id ? { ...p, ...updateData } : p));
+      setMensaje({ tipo: 'success', texto: '✅ Producto actualizado correctamente' });
+      setProductoEditando(null);
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+    } catch (error) {
+      setMensaje({ tipo: 'error', texto: `❌ Error: ${error.message}` });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && productos.length === 0) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-xl">Cargando productos...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-black">
+      <nav className="bg-gradient-to-r from-black via-red-900 to-black border-b border-red-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-3">
+              <Package className="text-red-600" size={28} />
+              <h1 className="text-2xl font-bold">
+                <span className="text-red-600">MAX</span>
+                <span className="text-white"> SPORT</span>
+              </h1>
+            </div>
+            <Link to="/admin/dashboard" className="text-gray-300 hover:text-white flex items-center gap-2">
+              <ArrowLeft size={20} />
+              Volver al Dashboard
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h2 className="text-4xl font-bold text-white mb-2">Productos</h2>
+            <p className="text-gray-400">{productos.length} cargados{hayMas ? ' (hay más)' : ''}</p>
+          </div>
+          <Link
+            to="/admin/agregar"
+            className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition"
+          >
+            + Agregar Producto
+          </Link>
+        </div>
+
+        {mensaje.texto && (
+          <div className={`mb-6 p-4 rounded-lg ${
+            mensaje.tipo === 'success'
+              ? 'bg-green-900/50 border border-green-600 text-green-200'
+              : 'bg-red-900/50 border border-red-600 text-red-200'
+          }`}>
+            {mensaje.texto}
+          </div>
+        )}
+
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Buscar por nombre..."
+              value={busquedaInput}
+              onChange={(e) => setBusquedaInput(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
+            />
+          </div>
+          <select
+            value={categoriaFiltro}
+            onChange={(e) => setCategoriaFiltro(e.target.value)}
+            className="px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
+          >
+            <option value="">Todas las categorías</option>
+            <option value="2x95">🔥 2 x 95</option>
+            <option value="Hombre">Hombre</option>
+            <option value="Mujer">Mujer</option>
+            <option value="Niños">Niños</option>
+            <option value="Artículos Deportivos">Artículos Deportivos</option>
+            <option value="Ofertas">Ofertas</option>
+          </select>
+        </div>
+
+        {productoEditando && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-900 rounded-xl p-8 max-w-2xl w-full border border-red-600 max-h-[90vh] overflow-y-auto">
+              <h3 className="text-2xl font-bold text-white mb-6">Editar Producto</h3>
+              <form onSubmit={actualizarProducto}>
+
+                <div className="mb-4">
+                  <label className="block text-gray-300 mb-2 font-semibold">Nombre</label>
+                  <input
+                    type="text"
+                    value={productoEditando.nombre}
+                    onChange={(e) => setProductoEditando({ ...productoEditando, nombre: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
+                  />
+                </div>
+
+                {productoEditando.marca !== undefined && (
+                  <div className="mb-4">
+                    <label className="block text-gray-300 mb-2 font-semibold">Marca</label>
+                    <input
+                      type="text"
+                      value={productoEditando.marca || ''}
+                      onChange={(e) => setProductoEditando({ ...productoEditando, marca: e.target.value })}
+                      placeholder="Deja vacío para Sin marca"
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
+                    />
+                  </div>
+                )}
+
+                {productoEditando.tallas && (
+                  <div className="mb-4">
+                    <label className="block text-gray-300 mb-2 font-semibold">Tallas (separadas por coma)</label>
+                    <input
+                      type="text"
+                      value={productoEditando.tallas?.join(', ') || ''}
+                      onChange={(e) => {
+                        const nuevasTallas = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
+                        const tsActual = productoEditando.tallas_stock || {};
+                        const nuevoTS = {};
+                        nuevasTallas.forEach(t => { nuevoTS[t] = tsActual[t] ?? 1; });
+                        setProductoEditando({ ...productoEditando, tallas: nuevasTallas, tallas_stock: nuevoTS });
+                      }}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
+                      placeholder="38, 39, 40, 41"
+                    />
+                    {productoEditando.tallas && productoEditando.tallas.length > 0 && (
+                      <div className="mt-3 bg-gray-800 rounded-xl p-3 border border-gray-700">
+                        <p className="text-gray-400 text-xs mb-2 font-semibold">Unidades por talla:</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {productoEditando.tallas.map(talla => (
+                            <div key={talla} className="flex items-center gap-2 bg-gray-700 rounded-lg px-2 py-1.5">
+                              <span className="text-white text-xs font-bold w-7 flex-shrink-0">T{talla}</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={(productoEditando.tallas_stock || {})[talla] ?? 1}
+                                onChange={(e) => {
+                                  const val = Math.max(0, parseInt(e.target.value) || 0);
+                                  setProductoEditando({
+                                    ...productoEditando,
+                                    tallas_stock: { ...(productoEditando.tallas_stock || {}), [talla]: val }
+                                  });
+                                }}
+                                className="w-full bg-gray-600 border border-gray-500 rounded px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-red-500 text-center"
+                              />
+                              <span className="text-gray-400 text-xs flex-shrink-0">ud</span>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-blue-300 text-xs mt-2">
+                          Stock total: <span className="font-bold text-white">
+                            {Object.values(productoEditando.tallas_stock || {}).reduce((s, v) => s + (parseInt(v) || 0), 0)} unidades
+                          </span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-300 mb-2 font-semibold">Precio Normal (S/)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={productoEditando.precio || ''}
+                      onChange={(e) => setProductoEditando({ ...productoEditando, precio: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 mb-2 font-semibold">
+                      Precio Oferta (S/) <span className="text-yellow-400 text-sm">(Opcional)</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={productoEditando.precio_oferta || ''}
+                      onChange={(e) => setProductoEditando({ ...productoEditando, precio_oferta: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-4 bg-gray-800 rounded-xl p-4 border border-blue-700">
+                  <h4 className="text-blue-300 font-bold mb-3 text-sm flex items-center gap-2">
+                    <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">POS</span>
+                    Datos para el Sistema de Caja
+                  </h4>
+
+                  <div className="mb-3">
+                    <label className="block text-gray-300 mb-1 text-sm font-semibold">Código de Barras</label>
+                    <input
+                      type="text"
+                      value={productoEditando.codigo_barras || ''}
+                      onChange={(e) => setProductoEditando({ ...productoEditando, codigo_barras: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                      placeholder="Escanea o escribe el código"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {(!productoEditando.tallas || productoEditando.tallas.length === 0) && (
+                      <div>
+                        <label className="block text-gray-300 mb-1 text-sm font-semibold">Stock actual</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={productoEditando.stock ?? ''}
+                          onChange={(e) => setProductoEditando({ ...productoEditando, stock: e.target.value })}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Ej: 10"
+                        />
+                        {productoEditando.stock !== null && productoEditando.stock !== '' && Number(productoEditando.stock) <= 3 && (
+                          <p className="text-yellow-400 text-xs mt-1 flex items-center gap-1">
+                            <AlertTriangle size={12} /> Stock bajo
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {productoEditando.tallas && productoEditando.tallas.length > 0 && (
+                      <div className="col-span-2 px-3 py-2 bg-blue-900/30 border border-blue-700 rounded-lg">
+                        <p className="text-blue-300 text-xs">Stock se calcula automáticamente desde las tallas</p>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-gray-300 mb-1 text-sm font-semibold">Ubicación en Almacén</label>
+                      <input
+                        type="text"
+                        value={productoEditando.ubicacion_almacen || ''}
+                        onChange={(e) => setProductoEditando({ ...productoEditando, ubicacion_almacen: e.target.value })}
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Casillero 3, Sección B"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition disabled:opacity-50"
+                  >
+                    {loading ? 'Guardando...' : 'Guardar Cambios'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProductoEditando(null)}
+                    className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {productos.map((producto) => (
+            <div key={producto.id} className="bg-gray-900 rounded-xl overflow-hidden border border-gray-700 hover:border-red-600 transition">
+              {(producto.imagenes?.[0] || producto.imagen_url) && (
+                <div className="aspect-square bg-white relative">
+                  <img
+                    src={producto.imagenes?.[0] || producto.imagen_url}
+                    alt={producto.nombre}
+                    className="w-full h-full object-cover"
+                  />
+                  {producto.precio_oferta && producto.precio_oferta < producto.precio && (
+                    <div className="absolute top-2 right-2 bg-yellow-500 text-black font-bold px-3 py-1 rounded-full text-xs">
+                      OFERTA
+                    </div>
+                  )}
+                  {producto.categoria === '2x95' && (
+                    <div className="absolute top-2 left-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold px-3 py-1 rounded-full text-xs">
+                      🔥 2x95
+                    </div>
+                  )}
+                  {producto.stock !== null && producto.stock <= 3 && (
+                    <div className={`absolute bottom-2 left-2 text-xs font-bold px-2 py-1 rounded-full ${
+                      producto.stock === 0
+                        ? 'bg-red-600 text-white'
+                        : 'bg-yellow-500 text-black'
+                    }`}>
+                      {producto.stock === 0 ? '⚠ Agotado' : `⚡ Stock: ${producto.stock}`}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="p-4">
+                <h3 className="font-bold text-white mb-2">{producto.nombre}</h3>
+                <div className="text-sm text-gray-400 space-y-1 mb-3">
+                  <p>Categoría: {producto.categoria}</p>
+                  {producto.marca && <p>Marca: {producto.marca}</p>}
+                  {producto.tallas && (
+                    <div className="mt-1">
+                      {producto.tallas_stock && Object.keys(producto.tallas_stock).length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {Object.entries(producto.tallas_stock)
+                            .sort((a, b) => Number(a[0]) - Number(b[0]))
+                            .map(([t, u]) => (
+                              <span key={t} className={`text-xs px-1.5 py-0.5 rounded font-semibold ${
+                                u === 0 ? 'bg-gray-700 text-gray-500' :
+                                u <= 2 ? 'bg-yellow-900 text-yellow-300' : 'bg-gray-800 text-green-400'
+                              }`}>T{t}:{u}</span>
+                            ))}
+                        </div>
+                      ) : (
+                        <p>Tallas: {producto.tallas.join(', ')}</p>
+                      )}
+                    </div>
+                  )}
+                  {producto.precio && (
+                    <div className="mt-1">
+                      {producto.precio_oferta && producto.precio_oferta < producto.precio ? (
+                        <>
+                          <p className="text-gray-500 line-through">S/ {producto.precio.toFixed(2)}</p>
+                          <p className="text-yellow-400 font-bold text-lg">S/ {producto.precio_oferta.toFixed(2)}</p>
+                        </>
+                      ) : (
+                        <p className="text-green-400 font-bold text-lg">S/ {producto.precio.toFixed(2)}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mb-3 space-y-1">
+                  {producto.codigo_barras && (
+                    <p className="text-xs text-blue-400 font-mono bg-gray-800 px-2 py-1 rounded truncate">
+                      🔲 {producto.codigo_barras}
+                    </p>
+                  )}
+                  {producto.stock !== null && (
+                    <p className={`text-xs font-semibold ${
+                      producto.stock === 0 ? 'text-red-400' :
+                      producto.stock <= 3 ? 'text-yellow-400' : 'text-green-400'
+                    }`}>
+                      Stock: {producto.stock} unidades
+                    </p>
+                  )}
+                  {producto.ubicacion_almacen && (
+                    <p className="text-xs text-gray-500">📍 {producto.ubicacion_almacen}</p>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setProductoEditando(producto)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition flex items-center justify-center gap-2"
+                  >
+                    <Edit size={16} />
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => eliminarProducto(producto.id, producto.imagenes)}
+                    className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition flex items-center justify-center"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {!loading && productos.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-gray-400 text-xl">No se encontraron productos</p>
+          </div>
+        )}
+
+        {hayMas && productos.length > 0 && (
+          <div className="text-center mt-10">
+            <button
+              onClick={verMas}
+              disabled={cargandoMas}
+              className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 px-8 rounded-lg transition"
+            >
+              {cargandoMas ? 'Cargando...' : 'Ver más productos'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
