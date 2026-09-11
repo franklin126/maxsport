@@ -20,7 +20,7 @@ export default function ListaProductos() {
   useEffect(() => {
     const t = setTimeout(() => {
       setBusqueda(busquedaInput);
-    }, 400);
+    }, 600);
     return () => clearTimeout(t);
   }, [busquedaInput]);
 

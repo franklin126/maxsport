@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { Search, Menu, X, Phone, MessageCircle, ChevronLeft, ChevronRight, ZoomIn, AlertTriangle, CheckCircle } from 'lucide-react';
@@ -521,13 +521,19 @@ function TiendaPublica() {
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [productosSeleccionados2x95, setProductosSeleccionados2x95] = useState([]);
   const [mostrarModal2x95, setMostrarModal2x95] = useState(false);
+  const cacheRef = useRef({});
 
   useEffect(() => {
     const t = setTimeout(() => {
-      setSearchTerm(searchInput);
-    }, 400);
+      const limpio = searchInput.trim();
+      if (limpio.length === 0 || limpio.length >= 2) {
+        setSearchTerm(limpio);
+      }
+    }, 550);
     return () => clearTimeout(t);
   }, [searchInput]);
+
+  const claveCache = () => `${categoriaActual}|${subcategoriaActual || ''}|${searchTerm}|${tallaFiltro}|${marcaFiltro}`;
 
   const construirQuery = (paginaActual) => {
     let query = supabase.from('productos').select('*').order('created_at', { ascending: false });
@@ -561,8 +567,13 @@ function TiendaPublica() {
     try {
       const { data, error } = await construirQuery(paginaActual);
       if (error) throw error;
-      setProductos(prev => reemplazar ? (data || []) : [...prev, ...(data || [])]);
-      setHayMas((data || []).length === PAGE_SIZE);
+      const lista = data || [];
+      setProductos(prev => reemplazar ? lista : [...prev, ...lista]);
+      const masDisponible = lista.length === PAGE_SIZE;
+      setHayMas(masDisponible);
+      if (reemplazar) {
+        cacheRef.current[claveCache()] = { productos: lista, hayMas: masDisponible };
+      }
     } catch (error) {
       console.error('Error al cargar productos:', error);
     }
@@ -575,6 +586,16 @@ function TiendaPublica() {
       setLoading(false);
       return;
     }
+
+    const cacheado = cacheRef.current[claveCache()];
+    if (cacheado) {
+      setProductos(cacheado.productos);
+      setHayMas(cacheado.hayMas);
+      setPagina(0);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setPagina(0);
     cargarProductos(0, true).finally(() => setLoading(false));
@@ -594,17 +615,6 @@ function TiendaPublica() {
     };
     cargarProductoDirecto();
   }, [idProductoUrl]);
-
-  useEffect(() => {
-    const canal = supabase
-      .channel('productos-stock')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'productos' }, (payload) => {
-        setProductos(prev => prev.map(p => p.id === payload.new.id ? { ...p, stock: payload.new.stock } : p));
-      })
-      .subscribe();
-
-    return () => supabase.removeChannel(canal);
-  }, []);
 
   const verMas = async () => {
     setCargandoMas(true);
