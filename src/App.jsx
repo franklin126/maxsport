@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { Search, Menu, X, Phone, MessageCircle, ChevronLeft, ChevronRight, ZoomIn, AlertTriangle, CheckCircle } from 'lucide-react';
 import { supabase } from './services/supabase';
@@ -15,7 +15,7 @@ import BuscarTicket from './pages/admin/BuscarTicket';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 
 const PAGE_SIZE = 20;
-const DOMINIO = 'https://www.max-sportt.com/';
+const DOMINIO = 'https://www.maxsport.pe';
 
 const marcasPorCategoria = {
   'Niños': ['Punto original', 'Vady', 'Air running', 'Adidas', 'Ivano', 'Nacionales', 'V dariens'],
@@ -501,8 +501,11 @@ function ModalYape({ producto, precio, onClose }) {
 }
 
 function TiendaPublica() {
-  const { id: idProductoUrl } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  const matchProducto = location.pathname.match(/^\/producto\/(.+)$/);
+  const idProductoUrl = matchProducto ? matchProducto[1] : null;
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriaActual, setCategoriaActual] = useState('2x95');
   const [subcategoriaActual, setSubcategoriaActual] = useState(null);
@@ -579,6 +582,11 @@ function TiendaPublica() {
 
   useEffect(() => {
     if (!idProductoUrl) return;
+    const yaLoTengo = productos.find(p => p.id === idProductoUrl);
+    if (yaLoTengo) {
+      setProductoSeleccionado(yaLoTengo);
+      return;
+    }
     if (productoSeleccionado && productoSeleccionado.id === idProductoUrl) return;
     const cargarProductoDirecto = async () => {
       const { data, error } = await supabase.from('productos').select('*').eq('id', idProductoUrl).maybeSingle();
@@ -1141,8 +1149,6 @@ function App() {
     <HelmetProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<TiendaPublica />} />
-          <Route path="/producto/:id" element={<TiendaPublica />} />
           <Route path="/admin/login" element={<Login />} />
           <Route path="/admin/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/admin/agregar" element={<ProtectedRoute><AgregarProducto /></ProtectedRoute>} />
@@ -1151,7 +1157,7 @@ function App() {
           <Route path="/admin/estadisticas" element={<ProtectedRoute><Estadisticas /></ProtectedRoute>} />
           <Route path="/admin/imprimir-codigo" element={<ProtectedRoute><ImprimirCodigo /></ProtectedRoute>} />
           <Route path="/admin/buscar-ticket" element={<ProtectedRoute><BuscarTicket /></ProtectedRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/*" element={<TiendaPublica />} />
         </Routes>
       </Router>
     </HelmetProvider>
