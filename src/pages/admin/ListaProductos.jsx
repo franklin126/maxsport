@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
+import { useCategorias } from '../../hooks/useCategorias';
 import { ArrowLeft, Package, Trash2, Edit, Search, AlertTriangle } from 'lucide-react';
 
 const PAGE_SIZE = 20;
 
 export default function ListaProductos() {
+  const { categorias } = useCategorias();
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cargandoMas, setCargandoMas] = useState(false);
@@ -194,12 +196,11 @@ export default function ListaProductos() {
             className="px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
           >
             <option value="">Todas las categorías</option>
-            <option value="2x95">🔥 2 x 95</option>
-            <option value="Hombre">Hombre</option>
-            <option value="Mujer">Mujer</option>
-            <option value="Niños">Niños</option>
-            <option value="Artículos Deportivos">Artículos Deportivos</option>
-            <option value="Ofertas">Ofertas</option>
+            {categorias.map(cat => (
+              <option key={cat.slug} value={cat.slug}>
+                {cat.slug === '2x95' ? '🔥 ' : cat.slug === 'Ofertas' ? '🎁 ' : ''}{cat.nombre}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -394,6 +395,7 @@ export default function ListaProductos() {
                   <img
                     src={producto.imagenes?.[0] || producto.imagen_url}
                     alt={producto.nombre}
+                    loading="lazy"
                     className="w-full h-full object-cover"
                   />
                   {producto.precio_oferta && producto.precio_oferta < producto.precio && (

@@ -1,21 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
+import { formatSoles, formatFechaHora } from '../../utils/formato';
 import { ArrowLeft, Package, TrendingUp, Calendar, ShoppingBag, DollarSign } from 'lucide-react';
 
 const PAGE_SIZE = 20;
-
-function formatSoles(num) {
-  return `S/ ${Number(num || 0).toFixed(2)}`;
-}
-
-function formatFechaHora(iso) {
-  return new Date(iso).toLocaleString('es-PE', {
-    timeZone: 'America/Lima',
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  });
-}
 
 export default function Estadisticas() {
   const [periodo, setPeriodo] = useState('hoy');

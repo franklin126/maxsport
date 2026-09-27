@@ -7,9 +7,6 @@ import {
   MapPin, Tag, Layers
 } from 'lucide-react';
 
-// ─── Utilidad: imprimir ticket con Xprinter térmica ───────────────────────────
-// Usa window.print() con estilos de impresión. Para Xprinter de 58mm o 80mm
-// selecciona el tamaño de papel correcto en el driver de Windows.
 function imprimirTicket(venta, items) {
   const fecha = new Date(venta.created_at).toLocaleString('es-PE', {
     timeZone: 'America/Lima',
@@ -72,7 +69,6 @@ function imprimirTicket(venta, items) {
   setTimeout(() => { ventana.print(); ventana.close(); }, 400);
 }
 
-// ─── Componente principal POS ─────────────────────────────────────────────────
 export default function POS() {
   const [carrito, setCarrito] = useState([]);
   const [productoEscaneado, setProductoEscaneado] = useState(null);
@@ -83,7 +79,6 @@ export default function POS() {
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const inputRef = useRef(null);
 
-  // Mantener el foco en el input del scanner siempre
   useEffect(() => {
     const mantenerFoco = () => {
       if (inputRef.current && !procesando && !ventaExitosa) {
@@ -95,7 +90,6 @@ export default function POS() {
     return () => document.removeEventListener('click', mantenerFoco);
   }, [procesando, ventaExitosa]);
 
-  // ── Buscar producto por código de barras ──────────────────────────────────
   const buscarProducto = async (codigo) => {
     if (!codigo.trim()) return;
 
@@ -132,7 +126,6 @@ export default function POS() {
     }
   };
 
-  // ── Agregar al carrito ────────────────────────────────────────────────────
   const agregarAlCarrito = (producto) => {
     if (!producto) return;
 
@@ -191,7 +184,6 @@ export default function POS() {
 
   const total = carrito.reduce((sum, item) => sum + item.subtotal, 0);
 
-  // ── Confirmar venta ───────────────────────────────────────────────────────
   const confirmarVenta = async () => {
     if (carrito.length === 0) {
       mostrarMensaje('error', 'El carrito está vacío');
@@ -200,7 +192,6 @@ export default function POS() {
     setProcesando(true);
 
     try {
-      // 1. Insertar venta principal
       const { data: venta, error: ventaError } = await supabase
         .from('ventas')
         .insert([{
@@ -213,7 +204,6 @@ export default function POS() {
 
       if (ventaError) throw ventaError;
 
-      // 2. Insertar items de la venta
       const items = carrito.map(item => ({
         venta_id: venta.id,
         producto_id: item.id,
@@ -229,7 +219,6 @@ export default function POS() {
 
       if (itemsError) throw itemsError;
 
-      // 3. Descontar stock de cada producto
       for (const item of carrito) {
         if (item.stock !== null) {
           await supabase.rpc('decrementar_stock', {
@@ -239,7 +228,6 @@ export default function POS() {
         }
       }
 
-      // 4. Guardar para ticket y limpiar
       setVentaExitosa({ venta, items });
       setCarrito([]);
       setProductoEscaneado(null);
@@ -262,7 +250,6 @@ export default function POS() {
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
-  // ─── PANTALLA DE VENTA EXITOSA ─────────────────────────────────────────────
   if (ventaExitosa) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -301,7 +288,6 @@ export default function POS() {
     );
   }
 
-  // ─── PANTALLA PRINCIPAL POS ────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
 
@@ -322,7 +308,6 @@ export default function POS() {
         </div>
       </nav>
 
-      {/* Mensaje de estado */}
       {mensaje.texto && (
         <div className={`mx-4 mt-3 p-3 rounded-lg flex items-center gap-2 text-sm ${
           mensaje.tipo === 'success'
@@ -336,10 +321,8 @@ export default function POS() {
 
       <div className="flex flex-1 gap-0 overflow-hidden max-w-7xl mx-auto w-full px-4 py-4">
 
-        {/* ── PANEL IZQUIERDO: Scanner + Producto ── */}
         <div className="flex-1 mr-4 flex flex-col gap-4 min-w-0">
 
-          {/* Input scanner (invisible pero siempre activo) */}
           <div className="bg-gray-900 rounded-xl border border-gray-700 p-4">
             <label className="block text-gray-400 text-xs mb-2 uppercase tracking-wider">
               Escanear código de barras
@@ -359,7 +342,6 @@ export default function POS() {
             </p>
           </div>
 
-          {/* Tarjeta de producto escaneado */}
           {productoEscaneado ? (
             <div className="bg-gray-900 rounded-xl border-2 border-green-500 p-5 flex-1">
               <div className="flex justify-between items-start mb-4">
@@ -371,7 +353,6 @@ export default function POS() {
                 </button>
               </div>
 
-              {/* Precios */}
               <div className="mb-4">
                 {productoEscaneado.precio_oferta && productoEscaneado.precio_oferta < productoEscaneado.precio ? (
                   <div className="flex items-center gap-3">
@@ -384,7 +365,6 @@ export default function POS() {
                 )}
               </div>
 
-              {/* Detalles */}
               <div className="grid grid-cols-1 gap-2 mb-5">
                 {productoEscaneado.tallas && productoEscaneado.tallas.length > 0 && (
                   <div className="flex items-center gap-2 bg-gray-800 rounded-lg p-3">
@@ -439,10 +419,8 @@ export default function POS() {
           )}
         </div>
 
-        {/* ── PANEL DERECHO: Carrito ── */}
         <div className="w-80 flex-shrink-0 flex flex-col bg-gray-900 rounded-xl border border-gray-700">
 
-          {/* Cabecera carrito */}
           <div className="p-4 border-b border-gray-700 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShoppingCart size={20} className="text-red-400" />
@@ -458,7 +436,6 @@ export default function POS() {
             )}
           </div>
 
-          {/* Items del carrito */}
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {carrito.length === 0 ? (
               <div className="text-center text-gray-600 py-12">
@@ -501,7 +478,6 @@ export default function POS() {
             )}
           </div>
 
-          {/* Total y cobrar */}
           <div className="p-4 border-t border-gray-700">
             <div className="flex justify-between items-center mb-3">
               <span className="text-gray-400 text-lg">Total</span>

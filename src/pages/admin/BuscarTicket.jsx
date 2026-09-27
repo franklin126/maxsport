@@ -1,19 +1,8 @@
 import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
+import { formatSoles, formatFechaHora } from '../../utils/formato';
 import { ArrowLeft, Package, Search, Receipt, RefreshCw, Calendar, CreditCard, User } from 'lucide-react';
-
-function formatSoles(num) {
-  return `S/ ${Number(num || 0).toFixed(2)}`;
-}
-
-function formatFechaHora(iso) {
-  return new Date(iso).toLocaleString('es-PE', {
-    timeZone: 'America/Lima',
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  });
-}
 
 export default function BuscarTicket() {
   const [codigoInput, setCodigoInput] = useState('');

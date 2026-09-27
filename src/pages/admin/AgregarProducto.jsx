@@ -2,22 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import { comprimirImagen } from '../../utils/comprimirImagen';
+import { useCategorias } from '../../hooks/useCategorias';
+import { SUBCATEGORIAS_DEPORTIVAS } from '../../utils/constantes';
+import { imprimirEtiquetas } from '../../utils/etiquetas';
 import { ArrowLeft, Upload, Save, Package, X, Barcode, Printer, RefreshCw } from 'lucide-react';
 
 const SUPABASE_URL = 'https://eofdimgshwlvnzhckxku.supabase.co';
 const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/productos/`;
 const COLA_KEY = 'maxsport_cola_etiquetas';
-
-const marcasPorCategoria = {
-  'Niños': ['Punto original', 'Vady', 'Air running', 'Adidas', 'Ivano', 'Nacionales', 'V dariens'],
-  'Hombre': ['Adidas', 'Nike', 'Puma', 'Brixton', 'Walon', 'Punto original', 'I cax', 'Ivano', 'Anda', 'Réplicas A1', 'New atletic', 'N-seven'],
-  'Mujer': ['Punto original', 'Punto v dariens', 'Ultralon', 'Estilo coreano', 'Adidas', 'Puma', 'Reebok', 'Nike', 'Vi-mas', 'Yumi', 'Cacy', 'Boni', 'Quelind', 'N-seven']
-};
-
-const subcategoriasDeportivas = [
-  'Pelotas Fútbol', 'Pelotas Vóley', 'Pelotas Basket',
-  'Productos para entrenamiento', 'Medallas', 'Trofeos', 'Medias deportivas'
-];
 
 const tallasDisponibles = Array.from({ length: 22 }, (_, i) => (i + 22).toString());
 const pasillos = Array.from({ length: 50 }, (_, i) => i + 1);
@@ -55,77 +47,9 @@ function limpiarCola() {
   localStorage.removeItem(COLA_KEY);
 }
 
-function cargarJsBarcode() {
-  return new Promise((resolve) => {
-    if (window.JsBarcode) { resolve(); return; }
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js';
-    script.onload = resolve;
-    document.head.appendChild(script);
-  });
-}
-
-async function imprimirCola(codigos) {
-  await cargarJsBarcode();
-
-  const imagenes = codigos.map(codigo => {
-    const canvas = document.createElement('canvas');
-    window.JsBarcode(canvas, codigo, {
-      format: 'CODE128',
-      width: 1,
-      height: 38,
-      displayValue: false,
-      margin: 2,
-    });
-    return { codigo, img: canvas.toDataURL('image/png') };
-  });
-
-  const filas = Math.ceil(imagenes.length / 3);
-  const totalCeldas = filas * 3;
-
-  const celdas = [];
-  for (let i = 0; i < totalCeldas; i++) {
-    if (i < imagenes.length) {
-      celdas.push(`
-        <div class="etiqueta">
-          <img src="${imagenes[i].img}" alt="barcode"/>
-          <div class="codigo-texto">${imagenes[i].codigo}</div>
-        </div>`);
-    } else {
-      celdas.push(`<div class="etiqueta"></div>`);
-    }
-  }
-
-  let filasHTML = '';
-  for (let f = 0; f < filas; f++) {
-    filasHTML += `<div class="fila">${celdas.slice(f * 3, f * 3 + 3).join('')}</div>`;
-  }
-
-  const ventana = window.open('', '_blank', 'width=500,height=400');
-  ventana.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        @page { size: 100mm ${filas * 20}mm; margin: 0; }
-        body { width: 100mm; background: white; }
-        .fila { width: 100mm; height: 20mm; display: flex; flex-direction: row; align-items: center; padding: 0 2mm; gap: 3mm; overflow: hidden; }
-        .etiqueta { flex: 1; height: 18mm; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
-        .etiqueta img { width: 100%; max-width: 26mm; height: 12mm; object-fit: contain; display: block; }
-        .etiqueta .codigo-texto { font-family: 'Courier New', monospace; font-size: 8pt; font-weight: bold; text-align: center; margin-top: 0.2mm; letter-spacing: 0.4px; }
-      </style>
-    </head>
-    <body>${filasHTML}</body>
-    </html>
-  `);
-  ventana.document.close();
-  setTimeout(() => { ventana.focus(); ventana.print(); ventana.close(); }, 600);
-}
-
 export default function AgregarProducto() {
   const navigate = useNavigate();
+  const { categorias, porSlug } = useCategorias();
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
   const [generandoCodigo, setGenerandoCodigo] = useState(false);
@@ -155,8 +79,15 @@ export default function AgregarProducto() {
 
   useEffect(() => { guardarCola(cola); }, [cola]);
 
-  const mostrarMarca = formData.categoria !== 'Artículos Deportivos' && formData.categoria !== 'Ofertas';
-  const mostrarTallas = formData.categoria !== 'Artículos Deportivos' && formData.categoria !== 'Ofertas';
+  useEffect(() => {
+    if (!modoCodigoManual && !formData.codigo_barras) {
+      generarCodigoAuto();
+    }
+  }, [modoCodigoManual, formData.codigo_barras]);
+
+  const categoriaInfo = porSlug(formData.categoria);
+  const mostrarMarca = categoriaInfo?.tiene_marca ?? true;
+  const mostrarTallas = categoriaInfo?.tiene_tallas ?? true;
   const marcaRequerida = formData.categoria !== '2x95' && mostrarMarca;
 
   const generarCodigoAuto = async () => {
@@ -295,6 +226,9 @@ export default function AgregarProducto() {
       if (formData.precio_oferta && Number(formData.precio_oferta) >= Number(formData.precio)) {
         throw new Error('El precio de oferta debe ser menor al precio normal');
       }
+      if (!formData.codigo_barras.trim()) {
+        throw new Error('Falta el código de barras. Espera a que se termine de generar o escanea uno.');
+      }
 
       const rutasImagenes = [];
       for (let i = 1; i <= 3; i++) {
@@ -322,7 +256,7 @@ export default function AgregarProducto() {
         categoria: formData.categoria,
         subcategoria: formData.subcategoria || null,
         marca: marcaFinal,
-        tallas: (formData.categoria !== 'Artículos Deportivos' && formData.categoria !== 'Ofertas') ? formData.tallas : null,
+        tallas: mostrarTallas ? formData.tallas : null,
         tallas_stock: hayTallasStock ? formData.tallas_stock : null,
         precio: Number(formData.precio),
         precio_oferta: formData.precio_oferta ? Number(formData.precio_oferta) : null,
@@ -346,7 +280,7 @@ export default function AgregarProducto() {
           limpiarCola();
           setFase(null);
           setUltimoCodigo(null);
-          await imprimirCola(nuevaCola);
+          await imprimirEtiquetas(nuevaCola);
         } else if (nuevaCola.length === 1) {
           setCola(nuevaCola);
           setCodigoParaCopias(codigoFinal);
@@ -385,7 +319,7 @@ export default function AgregarProducto() {
     limpiarCola();
     setFase(null);
     setUltimoCodigo(null);
-    await imprimirCola(colaActual);
+    await imprimirEtiquetas(colaActual);
   };
 
   const handleConfirmarCopias = async (imprimir) => {
@@ -404,7 +338,7 @@ export default function AgregarProducto() {
     if (nuevaCola.length >= 3) {
       setCola([]);
       limpiarCola();
-      await imprimirCola(nuevaCola.slice(0, 3));
+      await imprimirEtiquetas(nuevaCola.slice(0, 3));
       if (nuevaCola.length > 3) {
         const resto = nuevaCola.slice(3);
         setCola(resto);
@@ -571,16 +505,15 @@ export default function AgregarProducto() {
             <select value={formData.categoria}
               onChange={(e) => setFormData(prev => ({ ...prev, categoria: e.target.value, marca: '', subcategoria: '', tallas: [] }))}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600">
-              <option value="2x95">🔥 2 x 95</option>
-              <option value="Hombre">Hombre</option>
-              <option value="Mujer">Mujer</option>
-              <option value="Niños">Niños</option>
-              <option value="Artículos Deportivos">Artículos Deportivos</option>
-              <option value="Ofertas">🎁 Ofertas</option>
+              {categorias.map(cat => (
+                <option key={cat.slug} value={cat.slug}>
+                  {cat.slug === '2x95' ? '🔥 ' : cat.slug === 'Ofertas' ? '🎁 ' : ''}{cat.nombre}
+                </option>
+              ))}
             </select>
           </div>
 
-          {formData.categoria === 'Artículos Deportivos' && (
+          {categoriaInfo?.tiene_subcategoria && (
             <div className="mb-6">
               <label className="block text-gray-300 mb-2 font-semibold">Subcategoría</label>
               <select value={formData.subcategoria}
@@ -588,7 +521,7 @@ export default function AgregarProducto() {
                 required
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600">
                 <option value="">Seleccionar...</option>
-                {subcategoriasDeportivas.map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {SUBCATEGORIAS_DEPORTIVAS.map(sub => <option key={sub} value={sub}>{sub}</option>)}
               </select>
             </div>
           )}
@@ -604,7 +537,7 @@ export default function AgregarProducto() {
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600">
                 <option value="">Seleccionar marca...</option>
                 <option value="Sin marca">Sin marca</option>
-                {(formData.categoria === '2x95' ? marcasPorCategoria['Mujer'] : marcasPorCategoria[formData.categoria])?.map(marca => (
+                {(categoriaInfo?.marcas || []).map(marca => (
                   <option key={marca} value={marca}>{marca}</option>
                 ))}
               </select>
@@ -685,7 +618,7 @@ export default function AgregarProducto() {
 
             <div className="mb-4">
               <label className="block text-gray-300 mb-2 font-semibold">
-                Código de Barras <span className="text-gray-500 text-sm">(Opcional)</span>
+                Código de Barras <span className="text-red-400 text-sm">(Obligatorio)</span>
               </label>
               <div className="flex gap-2 mb-3">
                 <button type="button"
@@ -708,11 +641,11 @@ export default function AgregarProducto() {
                 <div className="flex gap-2">
                   <input type="text" value={formData.codigo_barras} readOnly
                     className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white font-mono text-lg tracking-widest"
-                    placeholder="Haz clic en 'Generar' →" />
+                    placeholder={generandoCodigo ? 'Generando código...' : 'Se genera solo, espera un segundo'} />
                   <button type="button" onClick={generarCodigoAuto} disabled={generandoCodigo}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-3 rounded-lg flex items-center gap-2 transition disabled:opacity-50">
                     <RefreshCw size={16} className={generandoCodigo ? 'animate-spin' : ''} />
-                    {generandoCodigo ? 'Generando...' : 'Generar'}
+                    {generandoCodigo ? 'Generando...' : 'Regenerar'}
                   </button>
                 </div>
               )}
@@ -725,10 +658,14 @@ export default function AgregarProducto() {
                   autoFocus />
               )}
 
-              {formData.codigo_barras && (
+              {formData.codigo_barras ? (
                 <p className="text-blue-400 text-xs mt-1">
                   ✓ Código: <span className="font-mono font-bold text-white">{formData.codigo_barras}</span>
                 </p>
+              ) : (
+                !generandoCodigo && modoCodigoManual && (
+                  <p className="text-yellow-400 text-xs mt-1">Todavía no tiene código, no vas a poder guardar sin uno</p>
+                )
               )}
             </div>
 
@@ -822,10 +759,10 @@ export default function AgregarProducto() {
           </div>
 
           <div className="flex gap-4">
-            <button type="submit" disabled={loading}
+            <button type="submit" disabled={loading || generandoCodigo || !formData.codigo_barras}
               className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50">
               <Save size={20} />
-              {loading ? 'Guardando...' : 'Guardar Producto'}
+              {loading ? 'Guardando...' : generandoCodigo ? 'Generando código...' : 'Guardar Producto'}
             </button>
             <button type="button" onClick={cancelarYLimpiar}
               className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition">
