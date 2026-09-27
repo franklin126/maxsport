@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Search, Menu, X, Phone, MessageCircle, ChevronLeft, CheckCircle } from 'lucide-react';
+import { Search, Menu, X, Phone, MessageCircle, MapPin, ChevronLeft, CheckCircle } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { useCategorias } from '../../hooks/useCategorias';
 import { DOMINIO, SUBCATEGORIAS_DEPORTIVAS } from '../../utils/constantes';
@@ -174,8 +174,13 @@ export default function TiendaPublica() {
     window.open(`https://wa.me/51929505174?text=${encodeURIComponent(mensaje)}`, '_blank');
   };
 
+
   const handleWhatsAppGeneral = () => {
     window.open(`https://wa.me/51929505174`, '_blank');
+  };
+
+  const handleUbicacion = () => {
+    window.open('https://maps.app.goo.gl/W3K9zHsMDkcpLZoJ7');
   };
 
   const BotonVerMas = () => {
@@ -669,12 +674,23 @@ export default function TiendaPublica() {
         />
       )}
 
-      <button
-        onClick={handleWhatsAppGeneral}
-        className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white rounded-full p-4 shadow-2xl z-50 transition transform hover:scale-110 animate-pulse"
-      >
-        <MessageCircle size={32} />
-      </button>
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-3">
+
+        <button
+            onClick={handleUbicacion}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-2xl transition transform hover:scale-110 animate-pulse"
+        >
+            <MapPin size={32} />
+        </button>
+
+        <button
+            onClick={handleWhatsAppGeneral}
+            className="bg-green-500 hover:bg-green-600 text-white rounded-full p-4 shadow-2xl transition transform hover:scale-110 animate-pulse"
+        >
+            <MessageCircle size={32} />
+        </button>
+
+      </div>
 
       <footer className="bg-gradient-to-r from-black via-red-900 to-green-900 border-t border-red-600 mt-12">
         <div className="max-w-7xl mx-auto px-4 py-8 text-center">
