@@ -20,7 +20,7 @@ export default function TiendaPublica() {
   const { categorias, porSlug } = useCategorias();
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [categoriaActual, setCategoriaActual] = useState('2x95');
+  const [categoriaActual, setCategoriaActual] = useState('Hombre');
   const [subcategoriaActual, setSubcategoriaActual] = useState(null);
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
