@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Search, Menu, X, Phone, MessageCircle, MapPin, ChevronLeft, CheckCircle } from 'lucide-react';
+import { Search, Phone, ChevronLeft, CheckCircle } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { useCategorias } from '../../hooks/useCategorias';
+import { useTarjetasInicio } from '../../hooks/useTarjetasInicio';
 import { DOMINIO, SUBCATEGORIAS_DEPORTIVAS } from '../../utils/constantes';
 import ModalProducto from './ModalProducto';
 import Modal2x95 from './Modal2x95';
+import Navbar from './Navbar';
+import Footer from './Footer';
+import BotonWhatsAppFlotante from './BotonWhatsAppFlotante';
 
 const PAGE_SIZE = 20;
 const tallas = Array.from({ length: 22 }, (_, i) => (i + 22).toString());
@@ -18,9 +22,9 @@ export default function TiendaPublica() {
   const idProductoUrl = matchProducto ? matchProducto[1] : null;
 
   const { categorias, porSlug } = useCategorias();
+  const tarjetas = useTarjetasInicio();
 
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [categoriaActual, setCategoriaActual] = useState('Hombre');
+  const [categoriaActual, setCategoriaActual] = useState(() => location.state?.categoria || '2x95');
   const [subcategoriaActual, setSubcategoriaActual] = useState(null);
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -151,7 +155,6 @@ export default function TiendaPublica() {
     setMarcaFiltro('');
     setSearchInput('');
     setSearchTerm('');
-    setMenuOpen(false);
     setProductosSeleccionados2x95([]);
   };
 
@@ -174,14 +177,7 @@ export default function TiendaPublica() {
     window.open(`https://wa.me/51929505174?text=${encodeURIComponent(mensaje)}`, '_blank');
   };
 
-
-  const handleWhatsAppGeneral = () => {
-    window.open(`https://wa.me/51929505174`, '_blank');
-  };
-
-  const handleUbicacion = () => {
-    window.open('https://maps.app.goo.gl/W3K9zHsMDkcpLZoJ7');
-  };
+  const fondoPortada = tarjetas[categoriaActual] || '/max.png';
 
   const BotonVerMas = () => {
     if (!hayMas || productos.length === 0) return null;
@@ -208,37 +204,10 @@ export default function TiendaPublica() {
         </Helmet>
       )}
 
-      <nav className="bg-gradient-to-r from-black via-red-900 to-black border-b border-red-600 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <img src="/logo.png" alt="Logo" className="w-10 h-8 rounded object-cover" />
-              <h1 className="text-2xl font-bold">
-                <span className="text-red-600">MAX</span>
-                <span className="text-white"> SPORT</span>
-              </h1>
-            </div>
-            <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden">
-              {menuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </div>
-
-        {menuOpen && (
-          <div className="md:hidden bg-black border-t border-red-600">
-            <div className="px-4 py-4 space-y-3">
-              {categorias.map(cat => (
-                <button key={cat.slug} onClick={() => handleCategoriaClick(cat.slug)} className="block w-full text-left hover:text-red-600">
-                  {cat.slug === '2x95' && '🔥 '}{cat.slug === 'Ofertas' && '🎁 '}{cat.nombre}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </nav>
+      <Navbar categorias={categorias} onCategoriaClick={handleCategoriaClick} />
 
       <div className="relative h-[35vh] md:h-[40vh] lg:h-[45vh]">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/max.png')" }}></div>
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${fondoPortada}')` }}></div>
         <div className="absolute inset-0 bg-black/35"></div>
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
@@ -674,29 +643,9 @@ export default function TiendaPublica() {
         />
       )}
 
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-3">
+      <BotonWhatsAppFlotante />
 
-        <button
-            onClick={handleUbicacion}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-2xl transition transform hover:scale-110 animate-pulse"
-        >
-            <MapPin size={32} />
-        </button>
-
-        <button
-            onClick={handleWhatsAppGeneral}
-            className="bg-green-500 hover:bg-green-600 text-white rounded-full p-4 shadow-2xl transition transform hover:scale-110 animate-pulse"
-        >
-            <MessageCircle size={32} />
-        </button>
-
-      </div>
-
-      <footer className="bg-gradient-to-r from-black via-red-900 to-green-900 border-t border-red-600 mt-12">
-        <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-          <p className="text-gray-400">&copy; 2026 MAX SPORT. Todos los derechos reservados.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

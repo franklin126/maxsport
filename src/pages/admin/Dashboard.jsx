@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
-import { LogOut, Package, PlusCircle, List, Home, ShoppingCart, TrendingUp, Printer, Barcode, Search } from 'lucide-react';
+import { LogOut, Package, PlusCircle, List, Home, ShoppingCart, TrendingUp, Printer, Barcode, Search, Megaphone, Image as ImageIcon } from 'lucide-react';
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -195,6 +195,36 @@ export default function Dashboard() {
               <div>
                 <h3 className="text-2xl font-bold text-white mb-1">Buscar Ticket</h3>
                 <p className="text-gray-400">Encuentra una venta por el código del ticket y revisa qué se vendió</p>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/anuncio"
+            className="bg-gray-900 hover:bg-gray-800 border-2 border-orange-600 rounded-xl p-8 transition group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="bg-orange-600 p-4 rounded-lg group-hover:scale-110 transition">
+                <Megaphone size={32} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-1">Aviso Emergente</h3>
+                <p className="text-gray-400">El anuncio que se muestra al entrar a la página</p>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/contenido-inicio"
+            className="bg-gray-900 hover:bg-gray-800 border-2 border-indigo-600 rounded-xl p-8 transition group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="bg-indigo-600 p-4 rounded-lg group-hover:scale-110 transition">
+                <ImageIcon size={32} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-1">Contenido de Inicio</h3>
+                <p className="text-gray-400">Portadas de sección y zapatillas en tendencia</p>
               </div>
             </div>
           </Link>
