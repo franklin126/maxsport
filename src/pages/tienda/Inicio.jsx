@@ -122,7 +122,7 @@ export default function Inicio() {
 
       <BotonWhatsAppFlotante />
 
-      <Footer />
+      <Footer variante="inicio" />
     </div>
   );
 }

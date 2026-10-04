@@ -37,34 +37,51 @@ export default function AnuncioModal() {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4" onClick={() => setVisible(false)}>
-      <div className="bg-gray-900 rounded-xl max-w-md w-full border-2 border-red-600 overflow-hidden max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="relative">
-          <button
-            onClick={() => setVisible(false)}
-            className="absolute top-3 right-3 bg-black/60 hover:bg-red-600 text-white rounded-full p-2 z-10"
-          >
-            <X size={20} />
-          </button>
-          {anuncio.imagen_url && (
-            <div className="aspect-square bg-white">
-              <img src={anuncio.imagen_url} alt={anuncio.nombre} className="w-full h-full object-cover" />
-            </div>
+      <div
+        className="relative bg-black border-2 border-red-600 rounded-2xl w-full max-w-3xl overflow-hidden max-h-[92vh] overflow-y-auto flex flex-col md:flex-row-reverse"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => setVisible(false)}
+          className="absolute top-3 right-3 bg-black/60 hover:bg-red-600 text-white rounded-full p-2 z-20 transition"
+        >
+          <X size={20} />
+        </button>
+
+        <div className="md:w-1/2 flex-shrink-0 bg-gray-950">
+          {anuncio.imagen_url ? (
+            <img src={anuncio.imagen_url} alt={anuncio.nombre} className="w-full h-56 md:h-full object-cover" />
+          ) : (
+            <div className="w-full h-56 md:h-full bg-gray-800" />
           )}
         </div>
 
-        <div className="p-6">
-          <h3 className="text-2xl font-bold text-white mb-2">{anuncio.nombre}</h3>
+        <div className="md:w-1/2 p-6 md:p-8 flex flex-col justify-center bg-gradient-to-b from-gray-900 to-black">
+          <h3 className="text-2xl md:text-3xl font-black text-white mb-2 leading-tight">{anuncio.nombre}</h3>
 
           {anuncio.descripcion && (
             <p className="text-gray-400 text-sm mb-4">{anuncio.descripcion}</p>
           )}
 
+          {anuncio.precio && (
+            <div className="mb-5">
+              {hayOferta ? (
+                <div className="flex items-baseline gap-3">
+                  <p className="text-gray-500 line-through text-sm">S/ {Number(anuncio.precio).toFixed(2)}</p>
+                  <p className="text-4xl font-black text-yellow-400">S/ {Number(anuncio.precio_oferta).toFixed(2)}</p>
+                </div>
+              ) : (
+                <p className="text-4xl font-black text-yellow-400">S/ {Number(anuncio.precio).toFixed(2)}</p>
+              )}
+            </div>
+          )}
+
           {anuncio.tallas && anuncio.tallas.length > 0 && (
-            <div className="mb-4">
-              <p className="text-gray-300 text-sm font-semibold mb-2">Tallas disponibles:</p>
+            <div className="mb-6">
+              <p className="text-red-500 text-xs font-bold tracking-widest mb-2">TALLAS DISPONIBLES</p>
               <div className="flex flex-wrap gap-2">
                 {anuncio.tallas.map(talla => (
-                  <span key={talla} className="bg-gray-800 text-white px-3 py-1 rounded-lg border border-red-600 text-sm">
+                  <span key={talla} className="bg-gray-900 text-white w-11 text-center py-1.5 rounded-md border border-red-600 text-sm font-semibold">
                     {talla}
                   </span>
                 ))}
@@ -72,25 +89,12 @@ export default function AnuncioModal() {
             </div>
           )}
 
-          {anuncio.precio && (
-            <div className="mb-5">
-              {hayOferta ? (
-                <div>
-                  <p className="text-gray-500 line-through">S/ {Number(anuncio.precio).toFixed(2)}</p>
-                  <p className="text-3xl font-black text-yellow-400">S/ {Number(anuncio.precio_oferta).toFixed(2)}</p>
-                </div>
-              ) : (
-                <p className="text-3xl font-black text-green-400">S/ {Number(anuncio.precio).toFixed(2)}</p>
-              )}
-            </div>
-          )}
-
           <button
             onClick={handleComprar}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg transition flex items-center justify-center gap-2"
+            className="w-full bg-white hover:bg-gray-200 text-black font-black py-4 rounded-lg transition flex items-center justify-center gap-2 tracking-wide"
           >
             <Phone size={20} />
-            Comprar ahora
+            COMPRAR AHORA
           </button>
         </div>
       </div>
