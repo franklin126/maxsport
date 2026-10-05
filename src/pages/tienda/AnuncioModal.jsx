@@ -1,12 +1,23 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { X, Phone } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 
+const CLAVE_ULTIMO_AVISO = 'maxsport_ultimo_aviso';
+const ESPERA_ENTRE_AVISOS = 10 * 60 * 1000;
+
 export default function AnuncioModal() {
+  const location = useLocation();
+  const esAdmin = location.pathname.startsWith('/admin');
   const [anuncio, setAnuncio] = useState(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    if (esAdmin) return;
+
+    const ultimaVez = Number(localStorage.getItem(CLAVE_ULTIMO_AVISO) || 0);
+    if (Date.now() - ultimaVez < ESPERA_ENTRE_AVISOS) return;
+
     let vivo = true;
     supabase
       .from('anuncios')
@@ -20,11 +31,13 @@ export default function AnuncioModal() {
         if (vivo && data) {
           setAnuncio(data);
           setVisible(true);
+          localStorage.setItem(CLAVE_ULTIMO_AVISO, String(Date.now()));
         }
       });
     return () => { vivo = false; };
-  }, []);
+  }, [esAdmin]);
 
+  if (esAdmin) return null;
   if (!visible || !anuncio) return null;
 
   const hayOferta = anuncio.precio_oferta && anuncio.precio && anuncio.precio_oferta < anuncio.precio;

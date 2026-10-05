@@ -34,7 +34,7 @@ export default function Footer({ variante }) {
                 <IconoFacebook className="w-6 h-6" />
               </a>
               <a
-                href="https://www.tiktok.com/@maxsport_2?_r=1&_t=ZS-9AGLm7x2Od0"
+                href="https://www.tiktok.com/@maxsport_3?_r=1&_t=ZS-9AJ57yGKmXf"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-300 hover:text-red-500 transition"

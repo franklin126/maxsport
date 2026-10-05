@@ -38,8 +38,7 @@ export default function Inicio() {
 
   const irACategoria = (slug) => navigate('/tienda', { state: { categoria: slug } });
 
-  const grupoA = armarGrupo(GRUPO_INICIO_A, categorias, tarjetas);
-  const grupoB = armarGrupo(GRUPO_INICIO_B, categorias, tarjetas);
+  const grupoCompleto = armarGrupo([...GRUPO_INICIO_A, ...GRUPO_INICIO_B], categorias, tarjetas);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -73,7 +72,7 @@ export default function Inicio() {
         </div>
       </div>
 
-      <CarruselSecciones titulo="Descubre más" items={grupoA} onSelect={irACategoria} />
+      <CarruselSecciones titulo="Descubre más" items={grupoCompleto} onSelect={irACategoria} />
 
       <div className="relative">
         <video
@@ -96,8 +95,6 @@ export default function Inicio() {
           </button>
         </div>
       </div>
-
-      <CarruselSecciones titulo="Descubre más" items={grupoB} onSelect={irACategoria} />
 
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="text-center mb-10">

@@ -28,7 +28,7 @@ export default function CarruselSecciones({ titulo, items, onSelect }) {
           <button
             key={item.slug}
             onClick={() => onSelect(item.slug)}
-            className="relative flex-shrink-0 w-64 md:w-80 lg:w-96 xl:w-[28rem] aspect-[4/5] rounded-xl overflow-hidden snap-start group text-left"
+            className="relative flex-shrink-0 w-52 md:w-64 lg:w-80 xl:w-[22rem] aspect-[4/5] rounded-xl overflow-hidden snap-start group text-left"
           >
             {item.imagen_url ? (
               <img src={item.imagen_url} alt={item.nombre} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition" />
