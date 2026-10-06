@@ -107,8 +107,8 @@ function FilaZapatilla({ zapatilla, onGuardado }) {
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 flex items-center gap-4">
-      <div className="w-20 h-20 bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+    <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+      <label className="relative w-20 h-20 bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden cursor-pointer group mx-auto sm:mx-0">
         {subiendo ? (
           <RefreshCw className="animate-spin text-blue-400" size={20} />
         ) : preview ? (
@@ -116,27 +116,24 @@ function FilaZapatilla({ zapatilla, onGuardado }) {
         ) : (
           <ImageIcon className="text-gray-600" size={24} />
         )}
-      </div>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/60 transition">
+          <Upload size={16} className="text-white opacity-0 group-hover:opacity-100 transition" />
+        </div>
+        <input type="file" accept="image/*" onChange={handleArchivo} className="hidden" />
+      </label>
 
       <input
         type="text"
         value={nombre}
         onChange={(e) => setNombre(e.target.value)}
         placeholder="Nombre de la zapatilla"
-        className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
+        className="w-full sm:flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-600"
       />
-
-      <label className="cursor-pointer flex-shrink-0">
-        <div className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-sm font-semibold transition">
-          Foto
-        </div>
-        <input type="file" accept="image/*" onChange={handleArchivo} className="hidden" />
-      </label>
 
       <button
         onClick={guardar}
         disabled={guardando}
-        className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 flex-shrink-0"
+        className="w-full sm:w-auto bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition flex items-center justify-center gap-2 flex-shrink-0"
       >
         <Save size={16} />
         {guardando ? 'Guardando...' : 'Guardar'}
@@ -168,35 +165,35 @@ export default function ContenidoInicio() {
   return (
     <div className="min-h-screen bg-black">
       <nav className="bg-gradient-to-r from-black via-red-900 to-black border-b border-red-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <ImageIcon className="text-red-600" size={28} />
-              <h1 className="text-2xl font-bold">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            <div className="flex items-center gap-2 sm:space-x-3">
+              <ImageIcon className="text-red-600" size={22} />
+              <h1 className="text-lg sm:text-2xl font-bold">
                 <span className="text-red-600">MAX</span>
                 <span className="text-white"> SPORT</span>
               </h1>
             </div>
             <Link to="/admin/dashboard" className="text-gray-300 hover:text-white flex items-center gap-2">
               <ArrowLeft size={20} />
-              Volver al Dashboard
+              <span className="hidden sm:inline">Volver al Dashboard</span>
             </Link>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        <div className="mb-10">
-          <h2 className="text-4xl font-bold text-white mb-2">Contenido de Inicio</h2>
-          <p className="text-gray-400">Fotos de portada de cada sección y de las zapatillas en tendencia</p>
+      <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12">
+        <div className="mb-8 sm:mb-10">
+          <h2 className="text-2xl sm:text-4xl font-bold text-white mb-2">Contenido de Inicio</h2>
+          <p className="text-gray-400 text-sm sm:text-base">Fotos de portada de cada sección y de las zapatillas en tendencia</p>
         </div>
 
         {loading ? (
           <p className="text-gray-500">Cargando...</p>
         ) : (
           <>
-            <h3 className="text-xl font-bold text-white mb-4">Portadas de sección</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-12">
+            <h3 className="text-lg sm:text-xl font-bold text-white mb-4">Portadas de sección</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-10 sm:mb-12">
               {SLUGS_PORTADA.map(slug => {
                 const cat = categorias.find(c => c.slug === slug);
                 return (
@@ -211,7 +208,7 @@ export default function ContenidoInicio() {
               })}
             </div>
 
-            <h3 className="text-xl font-bold text-white mb-4">Zapatillas en tendencia</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-white mb-4">Zapatillas en tendencia</h3>
             <div className="space-y-3">
               {zapatillas.map(z => (
                 <FilaZapatilla key={z.id} zapatilla={z} onGuardado={cargar} />
