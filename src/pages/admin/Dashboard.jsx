@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
-import { LogOut, Package, PlusCircle, List, Home, ShoppingCart, TrendingUp, Printer, Barcode, Search, Megaphone, Image as ImageIcon } from 'lucide-react';
+import { LogOut, Package, PlusCircle, List, Home, ShoppingCart, TrendingUp, Printer, Barcode, Search, Megaphone, Star, Image as ImageIcon } from 'lucide-react';
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -225,6 +225,21 @@ export default function Dashboard() {
               <div>
                 <h3 className="text-2xl font-bold text-white mb-1">Contenido de Inicio</h3>
                 <p className="text-gray-400">Portadas de sección y zapatillas en tendencia</p>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/producto-destacado"
+            className="bg-gray-900 hover:bg-gray-800 border-2 border-pink-600 rounded-xl p-8 transition group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="bg-pink-600 p-4 rounded-lg group-hover:scale-110 transition">
+                <Star size={32} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-1">Producto Destacado</h3>
+                <p className="text-gray-400">El que se abre con el botón "Ver producto" del inicio</p>
               </div>
             </div>
           </Link>

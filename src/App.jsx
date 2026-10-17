@@ -13,6 +13,7 @@ import ImprimirCodigo from './pages/admin/ImprimirCodigo';
 import BuscarTicket from './pages/admin/BuscarTicket';
 import AgregarAnuncio from './pages/admin/AgregarAnuncio';
 import ContenidoInicio from './pages/admin/ContenidoInicio';
+import ProductoDestacado from './pages/admin/ProductoDestacado';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
           <Route path="/admin/buscar-ticket" element={<ProtectedRoute><BuscarTicket /></ProtectedRoute>} />
           <Route path="/admin/anuncio" element={<ProtectedRoute><AgregarAnuncio /></ProtectedRoute>} />
           <Route path="/admin/contenido-inicio" element={<ProtectedRoute><ContenidoInicio /></ProtectedRoute>} />
+          <Route path="/admin/producto-destacado" element={<ProtectedRoute><ProductoDestacado /></ProtectedRoute>} />
           <Route path="*" element={<Inicio />} />
         </Routes>
       </Router>

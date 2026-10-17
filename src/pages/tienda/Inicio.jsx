@@ -9,6 +9,7 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import BotonWhatsAppFlotante from './BotonWhatsAppFlotante';
 import CarruselSecciones from './CarruselSecciones';
+import ModalProductoDestacado from './ModalProductoDestacado';
 
 function armarGrupo(slugs, categorias, tarjetas) {
   return slugs
@@ -25,6 +26,8 @@ export default function Inicio() {
   const { categorias } = useCategorias();
   const tarjetas = useTarjetasInicio();
   const [zapatillas, setZapatillas] = useState([]);
+  const [destacado, setDestacado] = useState(null);
+  const [verDestacado, setVerDestacado] = useState(false);
 
   useEffect(() => {
     supabase
@@ -36,7 +39,23 @@ export default function Inicio() {
       });
   }, []);
 
+  useEffect(() => {
+    supabase
+      .from('producto_destacado')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!error && data) setDestacado(data);
+      });
+  }, []);
+
   const irACategoria = (slug) => navigate('/tienda', { state: { categoria: slug } });
+
+  const handleVerProducto = () => {
+    if (destacado) setVerDestacado(true);
+    else irACategoria('Hombre');
+  };
 
   const grupoCompleto = armarGrupo([...GRUPO_INICIO_A, ...GRUPO_INICIO_B], categorias, tarjetas);
 
@@ -64,7 +83,7 @@ export default function Inicio() {
           <p className="text-red-500 font-bold tracking-[0.3em] text-xs md:text-sm mb-2">NUEVO INGRESO</p>
           <h2 className="text-2xl md:text-5xl font-black mb-4 max-w-sm leading-tight">NIKE AIR FORCE WHITE</h2>
           <button
-            onClick={() => irACategoria('Hombre')}
+            onClick={handleVerProducto}
             className="border-2 border-white text-white hover:bg-white hover:text-black font-bold px-6 py-3 transition tracking-wider text-sm"
           >
             VER PRODUCTO
@@ -116,6 +135,10 @@ export default function Inicio() {
           ))}
         </div>
       </div>
+
+      {verDestacado && destacado && (
+        <ModalProductoDestacado producto={destacado} onClose={() => setVerDestacado(false)} />
+      )}
 
       <BotonWhatsAppFlotante />
 
